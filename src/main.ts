@@ -4,8 +4,12 @@ import { injectGlobals } from './globals';
 import { logDebug } from './util/log';
 import { definitionUnderline } from './editor/underline';
 import { getDefinitionDropdown, initDefinitionDropdown } from './editor/definition-dropdown';
+import { Extension } from '@codemirror/state';
+import { DefManager, initDefFileManager } from './core/def-file-manager';
 
 export default class NoteDefinition extends Plugin {
+	activeEditorExtensions: Extension[] = [];
+	defManager: DefManager;
 
 	async onload() {
 		injectGlobals();
@@ -28,17 +32,26 @@ export default class NoteDefinition extends Plugin {
 			}
 		});
 
-		this.initEvents();
+		this.defManager = initDefFileManager(this.app);
 
-		this.registerEditorExtension(definitionUnderline);
+		this.registerEvents();
+
+		this.registerEditorExtension(this.activeEditorExtensions);
 	}
 
-	initEvents() {
-		this.app.workspace.on("active-leaf-change", async (leaf) => {
+	registerEvents() {
+		this.registerEvent(this.app.workspace.on("active-leaf-change", async (leaf) => {
 			if (!leaf) return;
+			const currFile = this.app.workspace.getActiveFile();
+			if (currFile && this.defManager.isDefFile(currFile)) {
+				// TODO: Editor extension for definition file
+				this.setActiveEditorExtensions([]);
+			} else {
+				this.setActiveEditorExtensions(definitionUnderline);
+			}
 			initDefinitionDropdown(this);
-			this.loadDefinitions();
-		});
+			this.defManager.loadDefinitions();
+		}));
 
 		// Add editor menu option to preview definition
 		this.registerEvent(this.app.workspace.on("editor-menu", (menu, editor) => {
@@ -61,16 +74,10 @@ export default class NoteDefinition extends Plugin {
 
 	}
 
-	loadDefinitions() {
-		const file = this.app.vault.getFileByPath("definitions/Definition.md")
-		if (file) {
-			let parser = new FileParser(this.app, file);
-			parser.parseFile().then(defs => {
-				defs.forEach(def => {
-					window.NoteDefinition.definitions.global.set(def.key, def);
-				});
-			});
-		}
+	setActiveEditorExtensions(...ext: Extension[]) {
+		this.activeEditorExtensions.length = 0;
+		this.activeEditorExtensions.push(...ext);
+		this.app.workspace.updateOptions();
 	}
 
 	onunload() {

@@ -28,12 +28,12 @@ export class DefinitionUnderline implements PluginValue {
 	}
 
 	update(update: ViewUpdate) {
-		if (update.viewportChanged) {
-			this.debBuildDecorations(update.view);
-			return
-		}
 		if (update.docChanged) {
 			this.decorations = this.buildDecorations(update.view);
+			return
+		}
+		if (update.viewportChanged) {
+			this.debBuildDecorations(update.view);
 		}
 	}
 

@@ -42,7 +42,12 @@ export class DefinitionDropdown {
 		if (def.fullName != "") {
 			this.mountedDropdown.createEl("i", { text: def.fullName });
 		}
-		this.mountedDropdown.createEl("p", { text: def.definition });
+		this.mountedDropdown.createEl("p", { 
+			text: def.definition,
+			attr: {
+				style: "white-space: pre-line"
+			}
+		});
 	}
 
 	private unmount() {
