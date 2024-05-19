@@ -1,8 +1,10 @@
-/*
-
-This CSS file will be included with your plugin, and
-available in the app when your plugin is enabled.
-
-If your plugin does not need CSS, delete this file.
-
-*/
+.definition-dropdown {
+	background-color: var(--background-secondary);
+	border: 1px solid var(--background-modifier-border-hover);
+	border-radius: var(--radius-m);
+	min-height: 200px;
+	width: 500px;
+	position: absolute;
+	padding: var(--size-4-2);
+	box-shadow: var(--shadow-s);
+}

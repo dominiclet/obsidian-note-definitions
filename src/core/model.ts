@@ -1,5 +1,4 @@
 
-
 export interface Definition {
 	key: string;
 	word: string;
