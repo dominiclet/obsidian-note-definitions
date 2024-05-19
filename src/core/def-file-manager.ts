@@ -1,4 +1,5 @@
 import { App, TFile, TFolder } from "obsidian";
+import { normaliseWord } from "src/util/editor";
 import { logWarn } from "src/util/log";
 import { FileParser } from "./file-parser";
 import { Definition } from "./model";
@@ -31,6 +32,10 @@ export class DefManager {
 	loadDefinitions() {
 		this.reset();
 		this.loadGlobals();
+	}
+
+	get(key: string) {
+		return this.globalDefs.get(normaliseWord(key));
 	}
 
 	private async loadGlobals() {

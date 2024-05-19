@@ -53,6 +53,7 @@ export class FileParser {
 			// Begin definition
 			this.inDefinition = true;
 			this.defBuffer.definition = line + "\n";
+
 		}
 		if (this.bufferValid()) {
 			this.commitDefBuffer();
@@ -66,6 +67,8 @@ export class FileParser {
 			word: this.defBuffer.word ?? "",
 			fullName: this.defBuffer.fullName ?? "",
 			definition: this.defBuffer.definition ?? "",
+			file: this.file,
+			linkText: `${this.file.path}${this.defBuffer.word ? '#'+this.defBuffer.word : ''}`,
 		});
 		this.defBuffer = {};
 	}

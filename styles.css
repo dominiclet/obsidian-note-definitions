@@ -2,7 +2,6 @@
 	background-color: var(--background-secondary);
 	border: 1px solid var(--background-modifier-border-hover);
 	border-radius: var(--radius-m);
-	min-height: 200px;
 	width: 500px;
 	position: absolute;
 	padding: var(--size-4-2);
