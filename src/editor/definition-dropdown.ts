@@ -30,14 +30,63 @@ export class DefinitionDropdown {
 		return cmEditor;
 	}
 
-	private mount(def: Definition, style: string) {
+	private mount(def: Definition) {
+		let cursorCoords;
+		try {
+			cursorCoords = this.getCursorCoords();
+		} catch (e) {
+			logError("Could not open definition dropdown - could not get cursor coordinates");
+			return
+		}
+
+		// TODO: Offset based on font 
+		let cmEditor;
+		let editorElems = this.app.workspace.containerEl.getElementsByClassName("cm-editor");
+		if (editorElems.length > 0) {
+			cmEditor = editorElems[0];
+		} 
+		let top = Math.floor(cursorCoords.top) + 20;
+		let left = Math.floor(cursorCoords.left);
+
+		const workspaceStyle = getComputedStyle(this.app.workspace.containerEl)
+		const containerStyle = getComputedStyle(cmEditor ?? this.app.workspace.containerEl);
+
+		const leftLimit = parseInt(workspaceStyle.width) - parseInt(containerStyle.width);
+
 		this.mountedDropdown = this.app.workspace.containerEl.createEl("div", {
 			cls: "definition-dropdown",
 			attr: {
 				id: DEF_DROPDOWN_ID,
-				style: style
+				style: `max-width:${containerStyle.width};visibility:hidden`
 			},
 		});
+
+		const dropdownStyle = getComputedStyle(this.mountedDropdown);
+
+		// Check if should open to the left or right
+		if (left > parseInt(containerStyle.width) / 2) {
+			console.log("HERE")
+			console.log(left)
+			// Open to the left
+			left -= parseInt(dropdownStyle.width);
+			console.log(left)
+		}
+
+		// Shift horizontally based on left limit if required
+		left = Math.max(left, leftLimit);
+
+		// Check if should open upwards or downwards
+		if (top > parseInt(containerStyle.height) / 2) {
+			// Open upwards
+			top -= parseInt(dropdownStyle.height) + 20;
+		}
+
+		this.mountedDropdown.setCssStyles({
+			top: `${top}px`,
+			left: `${left}px`,
+			visibility: 'visible'
+		});
+
 		this.mountedDropdown.createEl("h2", { text: def.word });
 		if (def.fullName != "") {
 			this.mountedDropdown.createEl("i", { text: def.fullName });
@@ -75,23 +124,15 @@ export class DefinitionDropdown {
 	private getCursorCoords() {
 		const editor = this.app.workspace.activeEditor?.editor;
 		// @ts-ignore
-		return editor?.cm?.coordsAtPos(editor?.posToOffset(editor?.getCursor()), -1)
+		return editor?.cm?.coordsAtPos(editor?.posToOffset(editor?.getCursor()), -1);
 	}
 
 
 	open(def: Definition) {
 		this.unmount();
 
-		let cursorCoords;
-		try {
-			cursorCoords = this.getCursorCoords();
-		} catch (e) {
-			logError("Could not open definition dropdown - could not get cursor coordinates");
-			return
-		}
 
-		// TODO: Offset based on font 
-		this.mount(def, `top:${Math.floor(cursorCoords.top) + 20}px;left:${Math.floor(cursorCoords.left)}px`);
+		this.mount(def);
 
 		if (!this.mountedDropdown) {
 			logError("Mounting definition dropdown failed");
