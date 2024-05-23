@@ -71,13 +71,13 @@ export class DefinitionDropdown {
 			return
 		}
 
-		const cursorHeight = cursorCoords.bottom - cursorCoords.top;
 		const workspaceStyle = getComputedStyle(this.app.workspace.containerEl)
 
 		this.mountedDropdown = this.createElement(def);
 
 		const positionStyle: Partial<CSSStyleDeclaration> = {
-			visibility: 'visible'
+			visibility: 'visible',
+			maxWidth: '500px'
 		};
 
 		if (this.shouldOpenToRight(cursorCoords, workspaceStyle)) {
