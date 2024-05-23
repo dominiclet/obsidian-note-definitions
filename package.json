@@ -1,7 +1,7 @@
 {
-	"name": "obsidian-sample-plugin",
-	"version": "1.0.0",
-	"description": "This is a sample plugin for Obsidian (https://obsidian.md)",
+	"name": "obsidian-note-definitions",
+	"version": "0.0.1",
+	"description": "Personal dictionary for your notes",
 	"main": "main.js",
 	"scripts": {
 		"dev": "node esbuild.config.mjs",

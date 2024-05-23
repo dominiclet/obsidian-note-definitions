@@ -25,8 +25,8 @@ export default class NoteDefinition extends Plugin {
 
 	registerCommands() {
 		this.addCommand({
-			id: "cursor-lookup",
-			name: "Cursor Lookup",
+			id: "preview-definition",
+			name: "Preview definition",
 			editorCallback: (editor) => {
 				const curWord = getWordUnderCursor(editor);
 				if (!curWord) return;
