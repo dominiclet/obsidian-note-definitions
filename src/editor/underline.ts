@@ -59,9 +59,7 @@ export class DefinitionUnderline implements PluginValue {
 					word = wordBuf.join('');
 					if (window.NoteDefinition.definitions.global.has(word.toLowerCase())) {
 						builder.add(from + i - word.length, from + i, Decoration.mark({
-							attributes: {
-								style: 'text-decoration:underline yellow dotted',
-							}
+							class: 'def-decoration'
 						}));
 					}
 					wordBuf = [];
