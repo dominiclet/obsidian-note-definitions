@@ -37,6 +37,23 @@ However, this means that certain restrictive rules need to be followed:
 4. A line that occurs after a registered **word** and is not an alias is deemed to be a definition. Definitions can be multi-line. All subsequent lines are definitions until the definition block delimiter is encountered.
 5. A line with nothing but three hyphens `---` is used as a delimiter to separate definition blocks. This is rendered as a delimiting line in Obsidian.
 
+Example definition file with two definition blocks:
+
+> # Word1
+> 
+> *alias of word1*
+> 
+> Definition of word1.
+> This definition can span several lines.
+> It will end when the delimiter is reached.
+> 
+> ---
+> 
+> # Word2
+>
+> Notice that there is no alias here as it is optional.
+> The last word in the file does not need to have a delimiter, although it is still valid to have one.
+
 ## Feedback
 
 I welcome any feedback on how to improve this tool.
