@@ -1,6 +1,6 @@
 import { App, MarkdownView, Plugin } from "obsidian";
 import { Definition } from "src/core/model";
-import { logDebug, logError, logInfo } from "src/util/log";
+import { logDebug, logError } from "src/util/log";
 
 const DEF_DROPDOWN_ID = "definition-dropdown";
 
@@ -25,7 +25,7 @@ export class DefinitionDropdown {
 		const activeView = app.workspace.getActiveViewOfType(MarkdownView);
 		const cmEditor = (activeView as any)?.editMode?.editor?.cm?.cm;
 		if (!cmEditor) {
-			logInfo("cmEditor object not found, will not handle vim events for definition dropdown");
+			logDebug("cmEditor object not found, will not handle vim events for definition dropdown");
 		}
 		return cmEditor;
 	}
@@ -138,7 +138,7 @@ export class DefinitionDropdown {
 	}
 
 	cleanUp() {
-		logInfo("Cleaning dropdown elements");
+		logDebug("Cleaning dropdown elements");
 		const dropdownEls = document.getElementsByClassName(DEF_DROPDOWN_ID);
 		for (let i = 0; i < dropdownEls.length; i++) {
 			dropdownEls[i].remove();
