@@ -8,32 +8,23 @@ import {
   ViewPlugin,
   ViewUpdate,
 } from "@codemirror/view";
-import { debounce, Debouncer } from "obsidian";
 import { logDebug } from "src/util/log";
 
 // Underline definitions view plugin
 export class DefinitionUnderline implements PluginValue {
 	decorations: DecorationSet;
-	// Debounced update decorations
-	debBuildDecorations: Debouncer<[view: EditorView], DecorationSet>;
 
 	alphabetRegex = /^[a-zA-Z]+$/;
 	terminatingChars = new Set([' ', '\n', '\r']);
 
 	constructor(view: EditorView) {
 		this.decorations = this.buildDecorations(view);
-		this.debBuildDecorations = debounce((view: EditorView) => {
-			this.decorations = this.buildDecorations(view);
-		}, 1000, true);
 	}
 
 	update(update: ViewUpdate) {
-		if (update.docChanged) {
+		if (update.docChanged || update.viewportChanged) {
 			this.decorations = this.buildDecorations(update.view);
 			return
-		}
-		if (update.viewportChanged) {
-			this.debBuildDecorations(update.view);
 		}
 	}
 
@@ -59,7 +50,11 @@ export class DefinitionUnderline implements PluginValue {
 					word = wordBuf.join('');
 					if (window.NoteDefinition.definitions.global.has(word.toLowerCase())) {
 						builder.add(from + i - word.length, from + i, Decoration.mark({
-							class: 'def-decoration'
+							class: 'def-decoration',
+							attributes: {
+								onmouseenter: `window.NoteDefinition.triggerDefPreview(this)`,
+								def: word
+							}
 						}));
 					}
 					wordBuf = [];

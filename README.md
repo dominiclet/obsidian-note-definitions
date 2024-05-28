@@ -9,7 +9,7 @@ A personal dictionary that can be easily looked-up from within your notes.
 1. Create a `definitions` folder in the root of your Obsidian vault.
 2. Within the `definitions` folder, create definition files (with any name of your choice).
 3. Add definitions according to the definition rules (see below)
-4. Once a definition is registered, the word should be underlined in your notes. You may trigger a dropdown showing the definition of the word by right clicking on the word and selecting the appropriate option, or using a command.
+4. Once a definition is registered, the word should be underlined in your notes. You may preview the definition of the word by hovering over the underlined word with the mouse, or triggering command when your cursor is on the word.
 
 ### Editor menu
 

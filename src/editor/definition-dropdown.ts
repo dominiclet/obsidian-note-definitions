@@ -6,6 +6,13 @@ const DEF_DROPDOWN_ID = "definition-dropdown";
 
 let definitionDropdown: DefinitionDropdown;
 
+interface Coordinates {
+	left: number;
+	right: number;
+	top: number;
+	bottom: number;
+}
+
 export class DefinitionDropdown {
 	app: App
 	plugin: Plugin;
@@ -21,6 +28,49 @@ export class DefinitionDropdown {
 		this.cmEditor = this.getCmEditor(this.app);
 	}
 
+	// Open at editor cursor's position
+	openAtCursor(def: Definition) {
+		this.unmount();
+		this.mountAtCursor(def);
+
+		if (!this.mountedDropdown) {
+			logError("Mounting definition dropdown failed");
+			return
+		}
+
+		this.registerCloseDropdownListeners();
+	}
+
+	// Open at coordinates (can use for opening at mouse position)
+	openAtCoords(def: Definition, coords: Coordinates) {
+		this.unmount();
+		this.mountAtCoordinates(def, coords);
+
+		if (!this.mountedDropdown) {
+			logError("mounting definition dropdown failed");
+			return
+		}
+	}
+
+	cleanUp() {
+		logDebug("Cleaning dropdown elements");
+		const dropdownEls = document.getElementsByClassName(DEF_DROPDOWN_ID);
+		for (let i = 0; i < dropdownEls.length; i++) {
+			dropdownEls[i].remove();
+		}
+	}
+
+	close = () => {
+		this.unmount();
+	}
+
+	clickClose = () => {
+		if (this.mountedDropdown?.matches(":hover")) {
+			return;
+		}
+		this.close();
+	}
+
 	private getCmEditor(app: App) {
 		const activeView = app.workspace.getActiveViewOfType(MarkdownView);
 		const cmEditor = (activeView as any)?.editMode?.editor?.cm?.cm;
@@ -31,12 +81,12 @@ export class DefinitionDropdown {
 	}
 
 	// True if open towards right, otherwise left
-	private shouldOpenToRight(cursorCoords: any, containerStyle: CSSStyleDeclaration): boolean {
-		return cursorCoords.left > parseInt(containerStyle.width) / 2;
+	private shouldOpenToRight(horizontalOffset: number, containerStyle: CSSStyleDeclaration): boolean {
+		return horizontalOffset > parseInt(containerStyle.width) / 2;
 	}
 
-	private shouldOpenUpwards(cursorCoords: any, containerStyle: CSSStyleDeclaration): boolean {
-		return cursorCoords.top > parseInt(containerStyle.height) / 2;
+	private shouldOpenUpwards(verticalOffset: number, containerStyle: CSSStyleDeclaration): boolean {
+		return verticalOffset > parseInt(containerStyle.height) / 2;
 	}
 
 	private createElement(def: Definition): HTMLDivElement {
@@ -62,7 +112,7 @@ export class DefinitionDropdown {
 		return el;
 	}
 
-	private mount(def: Definition) {
+	private mountAtCursor(def: Definition) {
 		let cursorCoords;
 		try {
 			cursorCoords = this.getCursorCoords();
@@ -71,8 +121,11 @@ export class DefinitionDropdown {
 			return
 		}
 
-		const workspaceStyle = getComputedStyle(this.app.workspace.containerEl)
+		this.mountAtCoordinates(def, cursorCoords);
+	}
 
+	private mountAtCoordinates(def: Definition, coords: Coordinates) {
+		const workspaceStyle = getComputedStyle(this.app.workspace.containerEl)
 		this.mountedDropdown = this.createElement(def);
 
 		const positionStyle: Partial<CSSStyleDeclaration> = {
@@ -80,16 +133,16 @@ export class DefinitionDropdown {
 			maxWidth: '500px'
 		};
 
-		if (this.shouldOpenToRight(cursorCoords, workspaceStyle)) {
-			positionStyle.right = `${parseInt(workspaceStyle.width) - cursorCoords.left}px`;
+		if (this.shouldOpenToRight(coords.left, workspaceStyle)) {
+			positionStyle.right = `${parseInt(workspaceStyle.width) - coords.left}px`;
 		} else {
-			positionStyle.left = `${cursorCoords.left}px`;
+			positionStyle.left = `${coords.left}px`;
 		}
 
-		if (this.shouldOpenUpwards(cursorCoords, workspaceStyle)) {
-			positionStyle.bottom = `${parseInt(workspaceStyle.height) - cursorCoords.top}px`;
+		if (this.shouldOpenUpwards(coords.top, workspaceStyle)) {
+			positionStyle.bottom = `${parseInt(workspaceStyle.height) - coords.top}px`;
 		} else {
-			positionStyle.top = `${cursorCoords.bottom}px`;
+			positionStyle.top = `${coords.bottom}px`;
 		}
 
 		this.mountedDropdown.setCssStyles(positionStyle);
@@ -106,43 +159,10 @@ export class DefinitionDropdown {
 		this.unregisterCloseDropdownListeners();
 	}
 
-	close = () => {
-		this.unmount();
-	}
-
-	clickClose = () => {
-		if (this.mountedDropdown?.matches(":hover")) {
-			return;
-		}
-		this.close();
-	}
-
-	private getCursorCoords() {
+	private getCursorCoords(): Coordinates {
 		const editor = this.app.workspace.activeEditor?.editor;
 		// @ts-ignore
 		return editor?.cm?.coordsAtPos(editor?.posToOffset(editor?.getCursor()), -1);
-	}
-
-
-	open(def: Definition) {
-		this.unmount();
-
-		this.mount(def);
-
-		if (!this.mountedDropdown) {
-			logError("Mounting definition dropdown failed");
-			return
-		}
-
-		this.registerCloseDropdownListeners();
-	}
-
-	cleanUp() {
-		logDebug("Cleaning dropdown elements");
-		const dropdownEls = document.getElementsByClassName(DEF_DROPDOWN_ID);
-		for (let i = 0; i < dropdownEls.length; i++) {
-			dropdownEls[i].remove();
-		}
 	}
 
 	private registerCloseDropdownListeners() {

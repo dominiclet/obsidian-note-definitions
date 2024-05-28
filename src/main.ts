@@ -32,7 +32,7 @@ export default class NoteDefinition extends Plugin {
 				if (!curWord) return;
 				const def = window.NoteDefinition.definitions.global.get(curWord);
 				if (!def) return;
-				getDefinitionDropdown().open(def);
+				getDefinitionDropdown().openAtCursor(def);
 			}
 		});
 
@@ -79,7 +79,7 @@ export default class NoteDefinition extends Plugin {
 			item.setTitle("Preview definition")
 				.setIcon("book-open-text")
 				.onClick(() => {
-					getDefinitionDropdown().open(def);
+					getDefinitionDropdown().openAtCursor(def);
 				});
 		});
 
