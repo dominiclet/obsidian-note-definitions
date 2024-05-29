@@ -33,10 +33,16 @@ export function injectGlobals() {
 			if (!def) return;
 
 			const defDropdown = getDefinitionDropdown();
-			defDropdown.openAtCoords(def, el.getBoundingClientRect());
+			let isOpen = false;
+
+			const openDropdown = setTimeout(() => {
+				defDropdown.openAtCoords(def, el.getBoundingClientRect());
+			}, 200);
 
 			el.onmouseleave = () => {
-				defDropdown.close();
+				if (!isOpen) {
+					clearTimeout(openDropdown);
+				}
 			}
 		}
 	}

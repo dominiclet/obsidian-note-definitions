@@ -50,6 +50,7 @@ export class DefinitionDropdown {
 			logError("mounting definition dropdown failed");
 			return
 		}
+		this.registerCloseDropdownListeners();
 	}
 
 	cleanUp() {
@@ -171,6 +172,10 @@ export class DefinitionDropdown {
 		if (this.cmEditor) {
 			this.cmEditor.on("vim-keypress", this.close);
 		}
+		const scroller = this.getCmScroller();
+		if (scroller) {
+			scroller.addEventListener("scroll", this.close);
+		}
 	}
 
 	private unregisterCloseDropdownListeners() {
@@ -178,6 +183,17 @@ export class DefinitionDropdown {
 		this.app.workspace.containerEl.removeEventListener("click", this.clickClose);
 		if (this.cmEditor) {
 			this.cmEditor.off("vim-keypress", this.close);
+		}
+		const scroller = this.getCmScroller();
+		if (scroller) {
+			scroller.removeEventListener("scroll", this.close);
+		}
+	}
+
+	private getCmScroller() {
+		const scroller = document.getElementsByClassName("cm-scroller");
+		if (scroller.length > 0) {
+			return scroller[0];
 		}
 	}
 
