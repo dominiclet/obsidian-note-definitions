@@ -1,7 +1,7 @@
 import { Menu, Plugin } from 'obsidian';
 import { injectGlobals } from './globals';
 import { logDebug } from './util/log';
-import { definitionUnderline } from './editor/underline';
+import { definitionMarker } from './editor/underline';
 import { getDefinitionDropdown, initDefinitionDropdown } from './editor/definition-dropdown';
 import { Extension } from '@codemirror/state';
 import { DefManager, initDefFileManager } from './core/def-file-manager';
@@ -57,7 +57,7 @@ export default class NoteDefinition extends Plugin {
 				// TODO: Editor extension for definition file
 				this.setActiveEditorExtensions([]);
 			} else {
-				this.setActiveEditorExtensions(definitionUnderline);
+				this.setActiveEditorExtensions(definitionMarker);
 			}
 			initDefinitionDropdown(this);
 			this.defManager.loadDefinitions();
