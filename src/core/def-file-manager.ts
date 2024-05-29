@@ -38,6 +38,10 @@ export class DefManager {
 		return this.globalDefs.get(normaliseWord(key));
 	}
 
+	has(key: string) {
+		return this.globalDefs.has(normaliseWord(key));
+	}
+
 	private async loadGlobals() {
 		const globalFolder = this.app.vault.getFolderByPath(this.getGlobalDefFolder());
 		if (!globalFolder) {

@@ -8,14 +8,22 @@ import {
   ViewPlugin,
   ViewUpdate,
 } from "@codemirror/view";
+import { getDefFileManager } from "src/core/def-file-manager";
 import { logDebug } from "src/util/log";
 
-// Underline definitions view plugin
-export class DefinitionUnderline implements PluginValue {
+interface WordPosition {
+	from: number;
+	to: number;
+	word: string;
+}
+
+// View plugin to mark definitions
+export class DefinitionMarker implements PluginValue {
 	decorations: DecorationSet;
 
 	alphabetRegex = /^[a-zA-Z]+$/;
-	terminatingChars = new Set([' ', '\n', '\r']);
+	// terminating chars mark the end of a word
+	terminatingCharRegex = /[!@#$%^&*()\-+={}[\]:;"'<>,.?\/|\\\r\n ]/;
 
 	constructor(view: EditorView) {
 		this.decorations = this.buildDecorations(view);
@@ -34,48 +42,65 @@ export class DefinitionUnderline implements PluginValue {
 		logDebug("Rebuild definition underline decorations");
 
 		const builder = new RangeSetBuilder<Decoration>();
+		const wordPositions: WordPosition[] = [];
 
 		for (let { from, to } of view.visibleRanges) {
 			const text = view.state.sliceDoc(from, to);
-			let wordBuf = [];
-			let word = '';
-			for (let i = 0; i < text.length; i++) {
-				let c = text.charAt(i);
-				if (wordBuf.length == 0 && this.alphabetRegex.test(c)) {
-					// start of word
-					wordBuf.push(c);
-					continue
+			wordPositions.push(...this.scanText(text, from));
+		}
+
+		wordPositions.forEach(wordPos => {
+			builder.add(wordPos.from, wordPos.to, Decoration.mark({
+				class: 'def-decoration',
+				attributes: {
+					onmouseenter: `window.NoteDefinition.triggerDefPreview(this)`,
+					def: wordPos.word
 				}
-				if (wordBuf.length > 0 && this.terminatingChars.has(c)) {
-					word = wordBuf.join('');
-					if (window.NoteDefinition.definitions.global.has(word.toLowerCase())) {
-						builder.add(from + i - word.length, from + i, Decoration.mark({
-							class: 'def-decoration',
-							attributes: {
-								onmouseenter: `window.NoteDefinition.triggerDefPreview(this)`,
-								def: word
-							}
-						}));
-					}
-					wordBuf = [];
-					word = '';
-					continue
+			}));
+		});
+		return builder.finish();
+	}
+
+	// Scan text and return words and their positions that require decoration
+	private scanText(text: string, offset: number): WordPosition[] {
+		const defManager = getDefFileManager();
+		let wordPositions: WordPosition[] = [];
+		let wordBuf = [];
+		let word = '';
+		for (let i = 0; i < text.length; i++) {
+			let c = text.charAt(i);
+			if (wordBuf.length == 0 && this.alphabetRegex.test(c)) {
+				// start of word
+				wordBuf.push(c);
+				continue
+			}
+			if (wordBuf.length > 0 && this.terminatingCharRegex.test(c)) {
+				word = wordBuf.join('');
+				if (defManager.has(word.toLowerCase())) {
+					wordPositions.push({
+						from: offset + i - word.length,
+						to: offset + i,
+						word: word,
+					});
 				}
-				if (wordBuf.length > 0) {
-					wordBuf.push(c);
-				}
+				wordBuf = [];
+				word = '';
+				continue
+			}
+			if (wordBuf.length > 0) {
+				wordBuf.push(c);
 			}
 		}
-		return builder.finish();
+		return wordPositions;
 	}
 }
 
-const pluginSpec: PluginSpec<DefinitionUnderline> = {
-	decorations: (value: DefinitionUnderline) => value.decorations,
+const pluginSpec: PluginSpec<DefinitionMarker> = {
+	decorations: (value: DefinitionMarker) => value.decorations,
 };
 
-export const definitionUnderline = ViewPlugin.fromClass(
-	DefinitionUnderline,
+export const definitionMarker = ViewPlugin.fromClass(
+	DefinitionMarker,
 	pluginSpec
 );
 
