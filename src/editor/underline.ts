@@ -15,11 +15,6 @@ import { LatinWordParser, WordParser } from "./word-parsers/latin-word-parser";
 
 const PHRASE_MAX_WORDS = 5;
 
-// Non-latin languages
-enum Lang {
-	ZH
-}
-
 // Information of phrase that can be used to add decorations within the editor
 interface PhraseInfo {
 	from: number;
@@ -72,12 +67,12 @@ export class DefinitionMarker implements PluginValue {
 	// Scan text and return phrases and their positions that require decoration
 	private scanText(text: string, offset: number): PhraseInfo[] {
 		let phraseInfos: PhraseInfo[] = [];
-		let wordStack: WordInfo[] = [];
 		const lines = text.split('\n');
 		let internalOffset = offset;
 
 		lines.forEach(line => {
 			const wordParser = this.getWordParser(line);
+			let wordStack: WordInfo[] = [];
 			
 			while (true) {
 				let wordInfo;
