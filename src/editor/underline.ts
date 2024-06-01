@@ -94,7 +94,6 @@ export class DefinitionMarker implements PluginValue {
 			const phrase = window.map(wordInfo => wordInfo.word).join(' ');
 			const def = defManager.get(phrase);
 			if (def) {
-				console.log(window)
 				phraseInfos.push({
 					from: offset + window[0].from,
 					to: offset + window[window.length - 1].to,
