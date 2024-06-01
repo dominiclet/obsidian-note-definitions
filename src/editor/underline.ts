@@ -10,6 +10,7 @@ import {
 } from "@codemirror/view";
 import { getDefFileManager } from "src/core/def-file-manager";
 import { logDebug } from "src/util/log";
+import { LatinWordParser, WordParser } from "./word-parsers/latin-word-parser";
 
 const PHRASE_MAX_WORDS = 5;
 
@@ -65,7 +66,7 @@ export class DefinitionMarker implements PluginValue {
 		let phraseInfos: PhraseInfo[] = [];
 		let wordStack: WordInfo[] = [];
 
-		const wordParser = new WordParser(text);
+		const wordParser = new LatinWordParser(text);
 		
 		while (true) {
 			let wordInfo;
@@ -82,6 +83,11 @@ export class DefinitionMarker implements PluginValue {
 			}
 
 			phraseInfos.push(...this.getMatchedPhrases(wordStack, offset));
+
+			if (wordInfo.terminating) {
+				// No need to look back anymore if current word is terminating
+				wordStack = [];
+			}
 		}
 		return phraseInfos;
 	}
@@ -114,65 +120,3 @@ export const definitionMarker = ViewPlugin.fromClass(
 	pluginSpec
 );
 
-interface WordInfo {
-	word: string;
-	from: number;
-	to: number;
-}
-
-class WordParser {
-	private text: string;
-	// Pointer to next char to read
-	private charPtr: number;
-	private textLen: number;
-
-	readonly alphabetRegex = /^[a-zA-Z]+$/;
-	// terminating chars mark the end of a word
-	readonly terminatingCharRegex = /[!@#$%^&*()\+={}[\]:;"'<>,.?\/|\\\r\n ]/;
-
-	constructor(text: string) {
-		this.text = text;
-		this.textLen = text.length;
-		this.charPtr = 0;
-	}
-
-	nextWord(): WordInfo {
-		let wordBuf: string[] = [];
-		let startPtr: number = 0;
-
-		while (true) {
-			if (this.charPtr > this.textLen - 1) {
-				break;
-			}
-			const currPtr = this.charPtr;
-			const c = this.text.charAt(this.charPtr++);
-			if (wordBuf.length === 0 && this.alphabetRegex.test(c)) {
-				// start of word
-				startPtr = currPtr;
-				wordBuf.push(c);
-				continue;
-			}
-			if (wordBuf.length > 0 && this.terminatingCharRegex.test(c)) {
-				// word found
-				const word = wordBuf.join('');
-				return {
-					word: word,
-					from: startPtr,
-					to: startPtr + word.length,
-				};
-			}
-			if (wordBuf.length > 0) {
-				wordBuf.push(c);
-			}
-		}
-		if (wordBuf.length > 0) {
-			const word = wordBuf.join('');
-			return {
-				word: word,
-				from: startPtr,
-				to: startPtr + word.length,
-			}
-		}
-		throw new Error("No more next word");
-	}
-}
