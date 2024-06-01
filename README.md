@@ -63,6 +63,13 @@ Example definition file with two definition blocks:
 > You can also define a phrase containing multiple words. 
 > Do note that this is limited to a maximum of 5 words.
 
+## Supported languages
+
+Currently, **English** and **Chinese** are supported.
+Other languages using latin characters may work, but is not guaranteed.
+
+For Chinese characters, each character is treated as a "word", so the maximum number of characters that can be defined in a "phrase" is 5.
+
 ## Feedback
 
 I welcome any feedback on how to improve this tool.

@@ -10,6 +10,9 @@ import {
 } from "@codemirror/view";
 import { getDefFileManager } from "src/core/def-file-manager";
 import { logDebug } from "src/util/log";
+import { ZhWordParser } from "./word-parsers/cn-word-parser";
+import { LatinWordParser } from "./word-parsers/latin-word-parser";
+import { WordInfo, WordParser } from "./word-parsers/word-parser";
 
 const PHRASE_MAX_WORDS = 5;
 
@@ -22,6 +25,8 @@ interface PhraseInfo {
 
 // View plugin to mark definitions
 export class DefinitionMarker implements PluginValue {
+	readonly cnLangRegex = /\p{Script=Han}/u;
+
 	decorations: DecorationSet;
 
 	constructor(view: EditorView) {
@@ -63,45 +68,69 @@ export class DefinitionMarker implements PluginValue {
 	// Scan text and return phrases and their positions that require decoration
 	private scanText(text: string, offset: number): PhraseInfo[] {
 		let phraseInfos: PhraseInfo[] = [];
-		let wordStack: WordInfo[] = [];
+		const lines = text.split('\n');
+		let internalOffset = offset;
 
-		const wordParser = new WordParser(text);
-		
-		while (true) {
-			let wordInfo;
-			try {
-				wordInfo = wordParser.nextWord();
-			} catch (e) {
-				// End of text
-				break;
+		lines.forEach(line => {
+			const wordParser = this.getWordParser(line);
+			let wordStack: WordInfo[] = [];
+			
+			while (true) {
+				let wordInfo;
+				try {
+					wordInfo = wordParser.nextWord();
+				} catch (e) {
+					// End of text
+					break;
+				}
+
+				wordStack.push(wordInfo);
+				if (wordStack.length > PHRASE_MAX_WORDS) {
+					wordStack.shift();
+				}
+
+				phraseInfos.push(...this.getMatchedPhrases(wordStack, internalOffset, wordParser));
+
+				if (wordInfo.terminating) {
+					// No need to look back anymore if current word is terminating
+					wordStack = [];
+				}
 			}
 
-			wordStack.push(wordInfo);
-			if (wordStack.length > PHRASE_MAX_WORDS) {
-				wordStack.shift();
-			}
+			// Additional 1 char for \n char
+			internalOffset += line.length + 1;
+		});
 
-			phraseInfos.push(...this.getMatchedPhrases(wordStack, offset));
-		}
 		return phraseInfos;
 	}
 
-	private getMatchedPhrases(wordStack: WordInfo[], offset: number): PhraseInfo[] {
+	private getMatchedPhrases(wordStack: WordInfo[], offset: number, wordParser: WordParser): PhraseInfo[] {
 		const phraseInfos: PhraseInfo[] = [];
 		const defManager = getDefFileManager();
 		for (let i = 0; i < wordStack.length; i++) {
 			const window = wordStack.slice(i);
-			const phrase = window.map(wordInfo => wordInfo.word).join(' ');
+			const phrase = window.map(wordInfo => wordInfo.word).join(wordParser.getSeparator());
 			const def = defManager.get(phrase);
 			if (def) {
+				// Fixes a weird issue where styling chinese characters ends one character early
+				const addend = wordParser instanceof ZhWordParser ? 1 : 0;
+
 				phraseInfos.push({
 					from: offset + window[0].from,
-					to: offset + window[window.length - 1].to,
+					to: offset + window[window.length - 1].to + addend,
 					phrase: phrase,
 				});
 			}
 		}
 		return phraseInfos;
+	}
+
+	// Given a string of text, guess the language and return the appropriate word parser
+	private getWordParser(text: string): WordParser {
+		if (this.cnLangRegex.test(text)) {
+			return new ZhWordParser(text);
+		}
+		return new LatinWordParser(text);
 	}
 }
 
@@ -114,65 +143,3 @@ export const definitionMarker = ViewPlugin.fromClass(
 	pluginSpec
 );
 
-interface WordInfo {
-	word: string;
-	from: number;
-	to: number;
-}
-
-class WordParser {
-	private text: string;
-	// Pointer to next char to read
-	private charPtr: number;
-	private textLen: number;
-
-	readonly alphabetRegex = /^[a-zA-Z]+$/;
-	// terminating chars mark the end of a word
-	readonly terminatingCharRegex = /[!@#$%^&*()\+={}[\]:;"'<>,.?\/|\\\r\n ]/;
-
-	constructor(text: string) {
-		this.text = text;
-		this.textLen = text.length;
-		this.charPtr = 0;
-	}
-
-	nextWord(): WordInfo {
-		let wordBuf: string[] = [];
-		let startPtr: number = 0;
-
-		while (true) {
-			if (this.charPtr > this.textLen - 1) {
-				break;
-			}
-			const currPtr = this.charPtr;
-			const c = this.text.charAt(this.charPtr++);
-			if (wordBuf.length === 0 && this.alphabetRegex.test(c)) {
-				// start of word
-				startPtr = currPtr;
-				wordBuf.push(c);
-				continue;
-			}
-			if (wordBuf.length > 0 && this.terminatingCharRegex.test(c)) {
-				// word found
-				const word = wordBuf.join('');
-				return {
-					word: word,
-					from: startPtr,
-					to: startPtr + word.length,
-				};
-			}
-			if (wordBuf.length > 0) {
-				wordBuf.push(c);
-			}
-		}
-		if (wordBuf.length > 0) {
-			const word = wordBuf.join('');
-			return {
-				word: word,
-				from: startPtr,
-				to: startPtr + word.length,
-			}
-		}
-		throw new Error("No more next word");
-	}
-}
