@@ -19,5 +19,5 @@ export abstract class WordParser {
 	abstract nextWord(): WordInfo;
 	// Get word separator for the language
 	// Some languages may not have any separators, in which case this should return an empty string
-	abstract static getSeparator(): string;
+	abstract getSeparator(): string;
 }

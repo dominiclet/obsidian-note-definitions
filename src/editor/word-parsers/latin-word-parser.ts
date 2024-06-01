@@ -2,7 +2,7 @@ import { WordInfo, WordParser } from "./word-parser";
 
 
 // Word parser for languages using latin characters
-// Only tested on English (not guaranteed to work with other languages)
+// Only tested on English (not guaranteed to work properly with other languages)
 export class LatinWordParser extends WordParser {
 	// Pointer to next char to read
 	private charPtr: number;
@@ -58,10 +58,10 @@ export class LatinWordParser extends WordParser {
 				terminating: true
 			}
 		}
-		throw new Error("No more next word");
+		throw new Error("End of text chunk");
 	}
 
-	static getSeparator(): string {
+	getSeparator(): string {
 		return ' ';
 	}
 }
