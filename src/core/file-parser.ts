@@ -91,9 +91,8 @@ export class FileParser {
 		return line.slice(1, line.length-1);
 	}
 
-	// This assumes that no other line in the definition block can make use of the '#' heading syntax
 	private isWordDeclaration(line: string): boolean {
-		return line.startsWith("#");
+		return line.startsWith("# ");
 	}
 
 	private extractWordDeclaration(line: string): string {

@@ -16,7 +16,7 @@ A personal dictionary that can be easily looked-up from within your notes.
 ### Editor menu
 
 Options available:
-- Preview definition (show definition dropdown)
+- Preview definition (show definition popover)
 - Go to definition (jump to definition of word/phrase)
 
 ![editor menu](./img/editor-menu.png)
@@ -24,7 +24,7 @@ Options available:
 ### Commands
 
 It is recommended to assign hotkeys to the following commands for convenient access:
-- Preview definition (show definition dropdown)
+- Preview definition (show definition popover)
 - Go to definition (jump to definition of word/phrase)
 
 ## Definition rules

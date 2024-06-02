@@ -2,11 +2,11 @@ import { Menu, Plugin } from 'obsidian';
 import { injectGlobals } from './globals';
 import { logDebug } from './util/log';
 import { definitionMarker } from './editor/underline';
-import { getDefinitionDropdown, initDefinitionDropdown } from './editor/definition-dropdown';
 import { Extension } from '@codemirror/state';
 import { DefManager, initDefFileManager } from './core/def-file-manager';
 import { getWordUnderCursor } from './util/editor';
 import { Definition } from './core/model';
+import { getDefinitionPopover, initDefinitionPopover } from './editor/definition-popover';
 
 export default class NoteDefinition extends Plugin {
 	activeEditorExtensions: Extension[] = [];
@@ -14,8 +14,10 @@ export default class NoteDefinition extends Plugin {
 
 	async onload() {
 		injectGlobals();
+
 		logDebug("Load note definition plugin");
 
+		initDefinitionPopover(this);
 		this.defManager = initDefFileManager(this.app);
 
 		this.registerCommands();
@@ -32,7 +34,7 @@ export default class NoteDefinition extends Plugin {
 				if (!curWord) return;
 				const def = window.NoteDefinition.definitions.global.get(curWord);
 				if (!def) return;
-				getDefinitionDropdown().openAtCursor(def);
+				getDefinitionPopover().openAtCursor(def);
 			}
 		});
 
@@ -59,7 +61,6 @@ export default class NoteDefinition extends Plugin {
 			} else {
 				this.setActiveEditorExtensions(definitionMarker);
 			}
-			initDefinitionDropdown(this);
 			this.defManager.loadDefinitions();
 		}));
 
@@ -79,7 +80,7 @@ export default class NoteDefinition extends Plugin {
 			item.setTitle("Preview definition")
 				.setIcon("book-open-text")
 				.onClick(() => {
-					getDefinitionDropdown().openAtCursor(def);
+					getDefinitionPopover().openAtCursor(def);
 				});
 		});
 
@@ -100,6 +101,6 @@ export default class NoteDefinition extends Plugin {
 
 	onunload() {
 		logDebug("Unload note definition plugin");
-		getDefinitionDropdown().cleanUp();
+		getDefinitionPopover().cleanUp();
 	}
 }

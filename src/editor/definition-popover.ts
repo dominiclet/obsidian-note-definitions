@@ -1,10 +1,10 @@
-import { App, MarkdownView, Plugin } from "obsidian";
+import { App, Component, MarkdownRenderer, MarkdownView, normalizePath, Plugin } from "obsidian";
 import { Definition } from "src/core/model";
 import { logDebug, logError } from "src/util/log";
 
-const DEF_DROPDOWN_ID = "definition-dropdown";
+const DEF_POPOVER_ID = "definition-popover";
 
-let definitionDropdown: DefinitionDropdown;
+let definitionPopover: DefinitionPopover;
 
 interface Coordinates {
 	left: number;
@@ -13,16 +13,17 @@ interface Coordinates {
 	bottom: number;
 }
 
-export class DefinitionDropdown {
+export class DefinitionPopover extends Component {
 	app: App
 	plugin: Plugin;
 	// Code mirror editor object for capturing vim events
 	cmEditor: any;
-	// Ref to the currently mounted dropdown
-	// There should only be one mounted dropdown at all times
-	mountedDropdown: HTMLElement | undefined;
+	// Ref to the currently mounted popover
+	// There should only be one mounted popover at all times
+	mountedPopover: HTMLElement | undefined;
 
 	constructor(plugin: Plugin) {
+		super();
 		this.app = plugin.app;
 		this.plugin = plugin;
 		this.cmEditor = this.getCmEditor(this.app);
@@ -33,12 +34,12 @@ export class DefinitionDropdown {
 		this.unmount();
 		this.mountAtCursor(def);
 
-		if (!this.mountedDropdown) {
-			logError("Mounting definition dropdown failed");
+		if (!this.mountedPopover) {
+			logError("Mounting definition popover failed");
 			return
 		}
 
-		this.registerCloseDropdownListeners();
+		this.registerClosePopoverListeners();
 	}
 
 	// Open at coordinates (can use for opening at mouse position)
@@ -46,18 +47,18 @@ export class DefinitionDropdown {
 		this.unmount();
 		this.mountAtCoordinates(def, coords);
 
-		if (!this.mountedDropdown) {
-			logError("mounting definition dropdown failed");
+		if (!this.mountedPopover) {
+			logError("mounting definition popover failed");
 			return
 		}
-		this.registerCloseDropdownListeners();
+		this.registerClosePopoverListeners();
 	}
 
 	cleanUp() {
-		logDebug("Cleaning dropdown elements");
-		const dropdownEls = document.getElementsByClassName(DEF_DROPDOWN_ID);
-		for (let i = 0; i < dropdownEls.length; i++) {
-			dropdownEls[i].remove();
+		logDebug("Cleaning popover elements");
+		const popoverEls = document.getElementsByClassName(DEF_POPOVER_ID);
+		for (let i = 0; i < popoverEls.length; i++) {
+			popoverEls[i].remove();
 		}
 	}
 
@@ -66,7 +67,7 @@ export class DefinitionDropdown {
 	}
 
 	clickClose = () => {
-		if (this.mountedDropdown?.matches(":hover")) {
+		if (this.mountedPopover?.matches(":hover")) {
 			return;
 		}
 		this.close();
@@ -76,7 +77,7 @@ export class DefinitionDropdown {
 		const activeView = app.workspace.getActiveViewOfType(MarkdownView);
 		const cmEditor = (activeView as any)?.editMode?.editor?.cm?.cm;
 		if (!cmEditor) {
-			logDebug("cmEditor object not found, will not handle vim events for definition dropdown");
+			logDebug("cmEditor object not found, will not handle vim events for definition popover");
 		}
 		return cmEditor;
 	}
@@ -92,9 +93,9 @@ export class DefinitionDropdown {
 
 	private createElement(def: Definition): HTMLDivElement {
 		const el = this.app.workspace.containerEl.createEl("div", {
-			cls: "definition-dropdown",
+			cls: "definition-popover",
 			attr: {
-				id: DEF_DROPDOWN_ID,
+				id: DEF_POPOVER_ID,
 				style: `visibility:hidden`
 			},
 		});
@@ -103,12 +104,11 @@ export class DefinitionDropdown {
 		if (def.fullName != "") {
 			el.createEl("i", { text: def.fullName });
 		}
-		el.createEl("p", { 
-			text: def.definition,
-			attr: {
-				style: "white-space: pre-line"
-			}
-		});
+		const contentEl = el.createEl("p");
+
+		const currComponent = this;
+		MarkdownRenderer.render(this.app, def.definition, contentEl, 
+			this.plugin.app.workspace.getActiveFile()?.path ?? '', currComponent);
 
 		return el;
 	}
@@ -118,7 +118,7 @@ export class DefinitionDropdown {
 		try {
 			cursorCoords = this.getCursorCoords();
 		} catch (e) {
-			logError("Could not open definition dropdown - could not get cursor coordinates");
+			logError("Could not open definition popover - could not get cursor coordinates");
 			return
 		}
 
@@ -127,7 +127,7 @@ export class DefinitionDropdown {
 
 	private mountAtCoordinates(def: Definition, coords: Coordinates) {
 		const workspaceStyle = getComputedStyle(this.app.workspace.containerEl)
-		this.mountedDropdown = this.createElement(def);
+		this.mountedPopover = this.createElement(def);
 
 		const positionStyle: Partial<CSSStyleDeclaration> = {
 			visibility: 'visible',
@@ -146,18 +146,18 @@ export class DefinitionDropdown {
 			positionStyle.top = `${coords.bottom}px`;
 		}
 
-		this.mountedDropdown.setCssStyles(positionStyle);
+		this.mountedPopover.setCssStyles(positionStyle);
 	}
 
 	private unmount() {
-		if (!this.mountedDropdown) {
-			logDebug("Nothing to unmount, could not find dropdown element");
+		if (!this.mountedPopover) {
+			logDebug("Nothing to unmount, could not find popover element");
 			return
 		}
-		this.mountedDropdown.remove();
-		this.mountedDropdown = undefined;
+		this.mountedPopover.remove();
+		this.mountedPopover = undefined;
 
-		this.unregisterCloseDropdownListeners();
+		this.unregisterClosePopoverListeners();
 	}
 
 	private getCursorCoords(): Coordinates {
@@ -166,7 +166,7 @@ export class DefinitionDropdown {
 		return editor?.cm?.coordsAtPos(editor?.posToOffset(editor?.getCursor()), -1);
 	}
 
-	private registerCloseDropdownListeners() {
+	private registerClosePopoverListeners() {
 		this.app.workspace.containerEl.addEventListener("keypress", this.close);
 		this.app.workspace.containerEl.addEventListener("click", this.clickClose);
 		if (this.cmEditor) {
@@ -178,7 +178,7 @@ export class DefinitionDropdown {
 		}
 	}
 
-	private unregisterCloseDropdownListeners() {
+	private unregisterClosePopoverListeners() {
 		this.app.workspace.containerEl.removeEventListener("keypress", this.close);
 		this.app.workspace.containerEl.removeEventListener("click", this.clickClose);
 		if (this.cmEditor) {
@@ -197,19 +197,19 @@ export class DefinitionDropdown {
 		}
 	}
 
-	getDropdownElement() {
-		return document.getElementById("definition-dropdown");
+	getPopoverElement() {
+		return document.getElementById("definition-popover");
 	}
 }
 
-// Mount definition dropdown
-export function initDefinitionDropdown(plugin: Plugin) {
-	if (definitionDropdown) {
-		definitionDropdown.cleanUp();
+// Mount definition popover
+export function initDefinitionPopover(plugin: Plugin) {
+	if (definitionPopover) {
+		definitionPopover.cleanUp();
 	}
-	definitionDropdown = new DefinitionDropdown(plugin);
+	definitionPopover = new DefinitionPopover(plugin);
 }
 
-export function getDefinitionDropdown() {
-	return definitionDropdown;
+export function getDefinitionPopover() {
+	return definitionPopover;
 }

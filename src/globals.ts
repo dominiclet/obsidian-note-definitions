@@ -1,6 +1,6 @@
 import { getDefFileManager } from "./core/def-file-manager";
 import { Definition } from "./core/model";
-import { getDefinitionDropdown } from "./editor/definition-dropdown";
+import { getDefinitionPopover } from "./editor/definition-popover";
 import { LogLevel } from "./util/log";
 
 export {}
@@ -32,16 +32,16 @@ export function injectGlobals() {
 			const def = getDefFileManager().get(word);
 			if (!def) return;
 
-			const defDropdown = getDefinitionDropdown();
+			const defPopover = getDefinitionPopover();
 			let isOpen = false;
 
-			const openDropdown = setTimeout(() => {
-				defDropdown.openAtCoords(def, el.getBoundingClientRect());
+			const openPopover = setTimeout(() => {
+				defPopover.openAtCoords(def, el.getBoundingClientRect());
 			}, 200);
 
 			el.onmouseleave = () => {
 				if (!isOpen) {
-					clearTimeout(openDropdown);
+					clearTimeout(openPopover);
 				}
 			}
 		}
