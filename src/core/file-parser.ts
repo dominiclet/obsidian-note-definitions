@@ -8,7 +8,7 @@ export class FileParser {
 	file: TFile;
 	defBuffer: {
 		word?: string;
-		fullName?: string;
+		aliases?: string[];
 		definition?: string;
 	};
 	inDefinition: boolean;
@@ -46,8 +46,8 @@ export class FileParser {
 				this.defBuffer.word = this.extractWordDeclaration(line);
 				continue
 			}
-			if (this.isFullNameDeclaration(line)) {
-				this.defBuffer.fullName = this.extractFullName(line);
+			if (this.isAliasDeclaration(line)) {
+				this.defBuffer.aliases = this.extractAliases(line);
 				continue
 			}
 			// Begin definition
@@ -62,14 +62,28 @@ export class FileParser {
 	}
 
 	private commitDefBuffer() {
+		// Register word
 		this.definitions.push({
 			key: this.defBuffer.word?.toLowerCase() ?? "",
 			word: this.defBuffer.word ?? "",
-			fullName: this.defBuffer.fullName ?? "",
+			aliases: this.defBuffer.aliases ?? [],
 			definition: this.defBuffer.definition ?? "",
 			file: this.file,
 			linkText: `${this.file.path}${this.defBuffer.word ? '#'+this.defBuffer.word : ''}`,
 		});
+		// Register aliases
+		if (this.defBuffer.aliases && this.defBuffer.aliases.length > 0) {
+			this.defBuffer.aliases.forEach(alias => {
+				this.definitions.push({
+					key: alias.toLowerCase(),
+					word: this.defBuffer.word ?? "",
+					aliases: this.defBuffer.aliases ?? [],
+					definition: this.defBuffer.definition ?? "",
+					file: this.file,
+					linkText: `${this.file.path}${this.defBuffer.word ? '#'+this.defBuffer.word : ''}`,
+				});
+			});
+		}
 		this.defBuffer = {};
 	}
 
@@ -81,15 +95,16 @@ export class FileParser {
 		return line.startsWith("---");
 	}
 
-	private isFullNameDeclaration(line: string): boolean {
+	private isAliasDeclaration(line: string): boolean {
 		line = line.trimEnd();
 		return !!this.defBuffer.word && line.startsWith("*") && line.endsWith("*");
 	}
 
-	private extractFullName(line: string): string {
-		line = line.trimEnd();
-		return line.slice(1, line.length-1);
-	}
+	private extractAliases(line: string): string[] {{
+		line = line.trimEnd().replace(/\*+/g, '');
+		const aliases = line.split(",");
+		return aliases.map(alias => alias.trim())
+	}}
 
 	private isWordDeclaration(line: string): boolean {
 		return line.startsWith("# ");

@@ -35,7 +35,7 @@ However, this means that certain restrictive rules need to be followed:
 
 1. A definition block consists of a phrase (a phrase being a set of 1 to 5 words), an alias (optional) and a definition. They must be strictly provided in that order.
 2. A phrase is denoted with a line in the following format `# <PHRASE>`. This is rendered as a markdown header in Obsidian.
-3. An **optional** alias is expected after a phrase. This must be a line surrounded by asterisks, eg. `*alias*`. This is rendered as italics in Obsidian.
+3. A **optional** comma-separated line of alias(es) is expected after a phrase. This must be a line surrounded by asterisks, eg. `*alias*`. This is rendered as italics in Obsidian.
 4. A line that occurs after a registered **phrase** and is not an alias is deemed to be a definition. Definitions can be multi-line. All subsequent lines are definitions until the definition block delimiter is encountered. You may write markdown here, which will be formatted similar to Obsidian's markdown formatting.
 5. A line with nothing but three hyphens `---` is used as a delimiter to separate definition blocks. This is rendered as a delimiting line in Obsidian.
 

@@ -101,8 +101,8 @@ export class DefinitionPopover extends Component {
 		});
 
 		el.createEl("h2", { text: def.word });
-		if (def.fullName != "") {
-			el.createEl("i", { text: def.fullName });
+		if (def.aliases.length > 0) {
+			el.createEl("i", { text: def.aliases.join(", ") });
 		}
 		const contentEl = el.createEl("p");
 
