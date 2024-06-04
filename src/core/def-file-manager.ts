@@ -1,4 +1,5 @@
 import { App, TFile, TFolder } from "obsidian";
+import { PTreeNode } from "src/editor/prefix-tree";
 import { normaliseWord } from "src/util/editor";
 import { logWarn } from "src/util/log";
 import { FileParser } from "./file-parser";
@@ -12,12 +13,14 @@ export class DefManager {
 	app: App;
 	globalDefs: Map<string, Definition>;
 	globalDefFiles: TFile[];
+	prefixTree: PTreeNode;
 
 	constructor(app: App) {
 		this.app = app;
 		this.globalDefs = new Map<string, Definition>;
 		this.globalDefFiles = [];
 		window.NoteDefinition.definitions.global = this.globalDefs;
+		this.prefixTree = new PTreeNode();
 	}
 
 	isDefFile(file: TFile): boolean {
@@ -54,6 +57,13 @@ export class DefManager {
 		definitions.forEach(def => {
 			this.globalDefs.set(def.key, def);
 		});
+
+		// Build prefix tree
+		const root = new PTreeNode();
+		this.globalDefs.forEach((_, key) => {
+			root.add(key, 0);
+		});
+		this.prefixTree = root;
 	}
 
 	private async parseFolder(folder: TFolder): Promise<Definition[]> {

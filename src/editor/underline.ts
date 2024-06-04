@@ -10,11 +10,7 @@ import {
 } from "@codemirror/view";
 import { getDefFileManager } from "src/core/def-file-manager";
 import { logDebug } from "src/util/log";
-import { ZhWordParser } from "./word-parsers/cn-word-parser";
-import { LatinWordParser } from "./word-parsers/latin-word-parser";
-import { WordInfo, WordParser } from "./word-parsers/word-parser";
-
-const PHRASE_MAX_WORDS = 5;
+import { PTreeTraverser } from "./prefix-tree";
 
 // Information of phrase that can be used to add decorations within the editor
 interface PhraseInfo {
@@ -26,6 +22,7 @@ interface PhraseInfo {
 // View plugin to mark definitions
 export class DefinitionMarker implements PluginValue {
 	readonly cnLangRegex = /\p{Script=Han}/u;
+	readonly terminatingCharRegex = /[!@#$%^&*()\+={}[\]:;"'<>,.?\/|\\\r\n ]/;
 
 	decorations: DecorationSet;
 
@@ -35,7 +32,10 @@ export class DefinitionMarker implements PluginValue {
 
 	update(update: ViewUpdate) {
 		if (update.docChanged || update.viewportChanged) {
+			const start = performance.now();
 			this.decorations = this.buildDecorations(update.view);
+			const end = performance.now();
+			logDebug(`Marked definitions in ${end-start}ms`)
 			return
 		}
 	}
@@ -43,8 +43,6 @@ export class DefinitionMarker implements PluginValue {
 	destroy() {}
 
 	buildDecorations(view: EditorView): DecorationSet {
-		logDebug("Rebuild definition underline decorations");
-
 		const builder = new RangeSetBuilder<Decoration>();
 		const phraseInfos: PhraseInfo[] = [];
 
@@ -72,65 +70,69 @@ export class DefinitionMarker implements PluginValue {
 		let internalOffset = offset;
 
 		lines.forEach(line => {
-			const wordParser = this.getWordParser(line);
-			let wordStack: WordInfo[] = [];
-			
-			while (true) {
-				let wordInfo;
-				try {
-					wordInfo = wordParser.nextWord();
-				} catch (e) {
-					// End of text
-					break;
+			let traversers: PTreeTraverser[] = [];
+			const defManager = getDefFileManager();
+
+			for (let i = 0; i < line.length; i++) {
+				if (this.isValidStart(line, i)) {
+					traversers.push(new PTreeTraverser(defManager.prefixTree));
 				}
 
-				wordStack.push(wordInfo);
-				if (wordStack.length > PHRASE_MAX_WORDS) {
-					wordStack.shift();
-				}
-
-				phraseInfos.push(...this.getMatchedPhrases(wordStack, internalOffset, wordParser));
-
-				if (wordInfo.terminating) {
-					// No need to look back anymore if current word is terminating
-					wordStack = [];
-				}
+				const c = line.charAt(i).toLowerCase();
+				traversers.forEach(traverser => {
+					traverser.gotoNext(c);
+					if (traverser.isWordEnd() && this.isValidEnd(line, i)) {
+						const phrase = traverser.getWord();
+						phraseInfos.push({
+							phrase: phrase,
+							from: internalOffset + i - phrase.length + 1,
+							to: internalOffset + i + 1,
+						});
+					}
+				});
+				// Collect garbage traversers that hit a dead-end
+				traversers = traversers.filter(traverser => {
+					return !!traverser.currPtr;
+				});
 			}
-
 			// Additional 1 char for \n char
 			internalOffset += line.length + 1;
 		});
 
+		// Decorations need to be sorted by 'from'
+		phraseInfos.sort((a, b) => a.from - b.from);
 		return phraseInfos;
 	}
 
-	private getMatchedPhrases(wordStack: WordInfo[], offset: number, wordParser: WordParser): PhraseInfo[] {
-		const phraseInfos: PhraseInfo[] = [];
-		const defManager = getDefFileManager();
-		for (let i = 0; i < wordStack.length; i++) {
-			const window = wordStack.slice(i);
-			const phrase = window.map(wordInfo => wordInfo.word).join(wordParser.getSeparator());
-			const def = defManager.get(phrase);
-			if (def) {
-				// Fixes a weird issue where styling chinese characters ends one character early
-				const addend = wordParser instanceof ZhWordParser ? 1 : 0;
-
-				phraseInfos.push({
-					from: offset + window[0].from,
-					to: offset + window[window.length - 1].to + addend,
-					phrase: phrase,
-				});
-			}
+	// Check if this character is a valid start of a word depending on the context
+	private isValidStart(line: string, ptr: number): boolean {
+		const c = line.charAt(ptr).toLowerCase();
+		if (c == " ") {
+			return false;
 		}
-		return phraseInfos;
+		if (ptr === 0 || this.isNonSpacedLanguage(c)) {
+			return true;
+		}
+		// Check if previous character is a terminating character
+		return this.terminatingCharRegex.test(line.charAt(ptr-1))
 	}
 
-	// Given a string of text, guess the language and return the appropriate word parser
-	private getWordParser(text: string): WordParser {
-		if (this.cnLangRegex.test(text)) {
-			return new ZhWordParser(text);
+	private isValidEnd(line: string, ptr: number): boolean {
+		const c = line.charAt(ptr).toLowerCase();
+		if (this.isNonSpacedLanguage(c)) {
+			return true;
 		}
-		return new LatinWordParser(text);
+		// If EOL, then it is a valid end
+		if (ptr === line.length - 1) {
+			return true;
+		}
+		// Check if next character is a terminating character
+		return this.terminatingCharRegex.test(line.charAt(ptr+1));
+	}
+
+	// Check if character is from a non-spaced language
+	private isNonSpacedLanguage(c: string): boolean {
+		return this.cnLangRegex.test(c);
 	}
 }
 

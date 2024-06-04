@@ -1,4 +1,4 @@
-import { App, Component, MarkdownRenderer, MarkdownView, normalizePath, Plugin } from "obsidian";
+import { App, Component, MarkdownRenderer, MarkdownView, Plugin } from "obsidian";
 import { Definition } from "src/core/model";
 import { logDebug, logError } from "src/util/log";
 
