@@ -7,13 +7,17 @@ import { DefManager, initDefFileManager } from './core/def-file-manager';
 import { getWordUnderCursor } from './util/editor';
 import { Definition } from './core/model';
 import { getDefinitionPopover, initDefinitionPopover } from './editor/definition-popover';
+import { postProcessor } from './editor/md-postprocessor';
+import { DEFAULT_SETTINGS, SettingsTab } from './settings';
 
 export default class NoteDefinition extends Plugin {
 	activeEditorExtensions: Extension[] = [];
 	defManager: DefManager;
 
 	async onload() {
-		injectGlobals();
+		// Settings are injected into global object
+		const settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData())
+		injectGlobals(settings);
 
 		logDebug("Load note definition plugin");
 
@@ -23,6 +27,13 @@ export default class NoteDefinition extends Plugin {
 		this.registerCommands();
 		this.registerEvents();
 		this.registerEditorExtension(this.activeEditorExtensions);
+
+		this.addSettingTab(new SettingsTab(this.app, this));
+		this.registerMarkdownPostProcessor(postProcessor)
+	}
+
+	async saveSettings() {
+		await this.saveData(window.NoteDefinition.settings);
 	}
 
 	registerCommands() {
@@ -76,14 +87,6 @@ export default class NoteDefinition extends Plugin {
 	}
 
 	registerMenuItems(menu: Menu, def: Definition) {
-		menu.addItem((item) => {
-			item.setTitle("Preview definition")
-				.setIcon("book-open-text")
-				.onClick(() => {
-					getDefinitionPopover().openAtCursor(def);
-				});
-		});
-
 		menu.addItem((item) => {
 			item.setTitle("Go to definition")
 				.setIcon("arrow-left-from-line")

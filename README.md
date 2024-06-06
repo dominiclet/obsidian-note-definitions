@@ -16,14 +16,11 @@ A personal dictionary that can be easily looked-up from within your notes.
 ### Editor menu
 
 Options available:
-- Preview definition (show definition popover)
 - Go to definition (jump to definition of word/phrase)
-
-![editor menu](./img/editor-menu.png)
 
 ### Commands
 
-It is recommended to assign hotkeys to the following commands for convenient access:
+You may want to assign hotkeys to the commands available for easy access:
 - Preview definition (show definition popover)
 - Go to definition (jump to definition of word/phrase)
 
