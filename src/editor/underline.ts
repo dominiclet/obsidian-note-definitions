@@ -8,9 +8,8 @@ import {
   ViewPlugin,
   ViewUpdate,
 } from "@codemirror/view";
-import { getDefFileManager } from "src/core/def-file-manager";
 import { logDebug } from "src/util/log";
-import { PTreeTraverser } from "./prefix-tree";
+import { LineScanner } from "./definition-search";
 
 // Information of phrase that can be used to add decorations within the editor
 interface PhraseInfo {
@@ -68,33 +67,10 @@ export class DefinitionMarker implements PluginValue {
 		let phraseInfos: PhraseInfo[] = [];
 		const lines = text.split('\n');
 		let internalOffset = offset;
+		const lineScanner = new LineScanner();
 
 		lines.forEach(line => {
-			let traversers: PTreeTraverser[] = [];
-			const defManager = getDefFileManager();
-
-			for (let i = 0; i < line.length; i++) {
-				if (this.isValidStart(line, i)) {
-					traversers.push(new PTreeTraverser(defManager.prefixTree));
-				}
-
-				const c = line.charAt(i).toLowerCase();
-				traversers.forEach(traverser => {
-					traverser.gotoNext(c);
-					if (traverser.isWordEnd() && this.isValidEnd(line, i)) {
-						const phrase = traverser.getWord();
-						phraseInfos.push({
-							phrase: phrase,
-							from: internalOffset + i - phrase.length + 1,
-							to: internalOffset + i + 1,
-						});
-					}
-				});
-				// Collect garbage traversers that hit a dead-end
-				traversers = traversers.filter(traverser => {
-					return !!traverser.currPtr;
-				});
-			}
+			phraseInfos.push(...lineScanner.scanLine(line, internalOffset));
 			// Additional 1 char for \n char
 			internalOffset += line.length + 1;
 		});
@@ -102,37 +78,6 @@ export class DefinitionMarker implements PluginValue {
 		// Decorations need to be sorted by 'from'
 		phraseInfos.sort((a, b) => a.from - b.from);
 		return phraseInfos;
-	}
-
-	// Check if this character is a valid start of a word depending on the context
-	private isValidStart(line: string, ptr: number): boolean {
-		const c = line.charAt(ptr).toLowerCase();
-		if (c == " ") {
-			return false;
-		}
-		if (ptr === 0 || this.isNonSpacedLanguage(c)) {
-			return true;
-		}
-		// Check if previous character is a terminating character
-		return this.terminatingCharRegex.test(line.charAt(ptr-1))
-	}
-
-	private isValidEnd(line: string, ptr: number): boolean {
-		const c = line.charAt(ptr).toLowerCase();
-		if (this.isNonSpacedLanguage(c)) {
-			return true;
-		}
-		// If EOL, then it is a valid end
-		if (ptr === line.length - 1) {
-			return true;
-		}
-		// Check if next character is a terminating character
-		return this.terminatingCharRegex.test(line.charAt(ptr+1));
-	}
-
-	// Check if character is from a non-spaced language
-	private isNonSpacedLanguage(c: string): boolean {
-		return this.cnLangRegex.test(c);
 	}
 }
 
