@@ -3,9 +3,12 @@ import NoteDefinition from "./main";
 
 export interface Settings {
 	enableInReadingView: boolean;
+	defFolder: string;
 }
 
-export const DEFAULT_SETTINGS = {
+export const DEFAULT_DEF_FOLDER = "definitions"
+
+export const DEFAULT_SETTINGS: Partial<Settings> = {
 	enableInReadingView: true,
 }
 
@@ -33,6 +36,17 @@ export class SettingsTab extends PluginSettingTab {
 					this.settings.enableInReadingView = val;
 					await this.plugin.saveSettings();
 				});
-			})
+			});
+		new Setting(containerEl)
+			.setName("Definitions folder")
+			.setDesc("Files within this folder will be parsed to register definitions (specify relative to root of vault)")
+			.addText((component) => {
+				component.setValue(this.settings.defFolder);
+				component.setPlaceholder(DEFAULT_DEF_FOLDER);
+				component.onChange(value => {
+					this.settings.defFolder = value;
+					this.plugin.saveSettings();
+				});
+			});
 	}
 }

@@ -1,11 +1,10 @@
 import { App, TFile, TFolder } from "obsidian";
 import { PTreeNode } from "src/editor/prefix-tree";
+import { DEFAULT_DEF_FOLDER } from "src/settings";
 import { normaliseWord } from "src/util/editor";
 import { logWarn } from "src/util/log";
 import { FileParser } from "./file-parser";
 import { Definition } from "./model";
-
-const DEFAULT_DEF_FOLDER = "definitions"
 
 let defFileManager: DefManager;
 
@@ -28,6 +27,7 @@ export class DefManager {
 	}
 
 	reset() {
+		this.prefixTree = new PTreeNode();
 		this.globalDefs.clear();
 		this.globalDefFiles = [];
 	}
@@ -86,9 +86,8 @@ export class DefManager {
 		return parser.parseFile();
 	}
 
-	// Here for extensibility
 	getGlobalDefFolder() {
-		return DEFAULT_DEF_FOLDER;
+		return window.NoteDefinition.settings.defFolder || DEFAULT_DEF_FOLDER;
 	}
 }
 
