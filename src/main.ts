@@ -29,7 +29,7 @@ export default class NoteDefinition extends Plugin {
 		this.registerEditorExtension(this.activeEditorExtensions);
 
 		this.addSettingTab(new SettingsTab(this.app, this));
-		this.registerMarkdownPostProcessor(postProcessor)
+		this.registerMarkdownPostProcessor(postProcessor);
 	}
 
 	async saveSettings() {

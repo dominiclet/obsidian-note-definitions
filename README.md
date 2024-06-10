@@ -66,4 +66,4 @@ Example definition file with two definition blocks:
 ## Feedback
 
 I welcome any feedback on how to improve this tool.
-Do let me know by opening a Github issue if you have any ideas for features or improvements.
+Do let me know by opening a Github issue if you find any bugs, or have any ideas for features or improvements.
