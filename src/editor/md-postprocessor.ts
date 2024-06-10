@@ -1,5 +1,5 @@
 import { MarkdownPostProcessor } from "obsidian";
-import { LineScanner } from "./definition-search";
+import { LineScanner, PhraseInfo } from "./definition-search";
 
 interface Marks {
 	el: HTMLElement;
@@ -29,7 +29,6 @@ const rebuildHTML = (parent: Node) => {
 				// Ignore nodes with just a newline char
 				continue;
 			}
-			console.log(childNode)
 			const lineScanner = new LineScanner();
 			const currText = childNode.textContent;
 			const phraseInfos = lineScanner.scanLine(currText);
@@ -39,35 +38,12 @@ const rebuildHTML = (parent: Node) => {
 
 			phraseInfos.sort((a, b) => a.from - b.from);
 			let currCursor = 0;
-			const newContainer = parent.createDiv();
+			const newContainer = parent.createSpan();
 			const addedMarks: Marks[] = [];
 
 			phraseInfos.forEach(phraseInfo => {
 				if (phraseInfo.from < currCursor) {
-					// This is to handle situation where a phrase appears in another defined phrase
-					const containerMarks = addedMarks.filter(mark => mark.phraseInfo.from < phraseInfo.from);
-					if (containerMarks.length == 0) {
-						return;
-					}
-					const containerMark = containerMarks[0];
-					const cSpan = containerMark.el;
-					const containedText = cSpan.textContent ?? '';
-					cSpan.textContent = '';
-					cSpan.appendText(containedText.slice(0, phraseInfo.from));
-					const span = cSpan.createSpan({
-						cls: "def-decoration",
-						attr: {
-							def: phraseInfo.phrase,
-							onmouseenter: "window.NoteDefinition.triggerDefPreview(this)"
-						},
-						text: currText.slice(phraseInfo.from, phraseInfo.to),
-					});
-					cSpan.appendChild(span);
-					cSpan.appendText(currText.slice(phraseInfo.to));
-					addedMarks.push({
-						el: span,
-						phraseInfo: phraseInfo,
-					});
+					// Subset or intersect phrases are ignored
 					return;
 				}
 
@@ -85,7 +61,7 @@ const rebuildHTML = (parent: Node) => {
 					el: span,
 					phraseInfo: phraseInfo,
 				})
-				currCursor += phraseInfo.to;
+				currCursor = phraseInfo.to;
 			});
 			newContainer.appendText(currText.slice(currCursor));
 			childNode.replaceWith(newContainer);

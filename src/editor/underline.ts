@@ -77,7 +77,18 @@ export class DefinitionMarker implements PluginValue {
 
 		// Decorations need to be sorted by 'from'
 		phraseInfos.sort((a, b) => a.from - b.from);
-		return phraseInfos;
+		return this.removeSubsetsAndIntersects(phraseInfos)
+	}
+
+	private removeSubsetsAndIntersects(phraseInfos: PhraseInfo[]): PhraseInfo[] {
+		let cursor = 0;
+		return phraseInfos.filter(phraseInfo => {
+			if (phraseInfo.from > cursor) {
+				cursor = phraseInfo.to;
+				return true;
+			}
+			return false;
+		});
 	}
 }
 
