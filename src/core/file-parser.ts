@@ -28,9 +28,6 @@ export class FileParser {
 		const lines = fileContent.split('\n');
 
 		for (const line of lines) {
-			if (line == "") {
-				continue
-			}
 			if (this.isEndOfBlock(line)) {
 				if (this.bufferValid()) {
 					this.commitDefBuffer();
@@ -40,6 +37,11 @@ export class FileParser {
 			}
 			if (this.inDefinition) {
 				this.defBuffer.definition += line + "\n";
+				continue
+			}
+
+			// If not within definition, ignore empty lines
+			if (line == "") {
 				continue
 			}
 			if (this.isWordDeclaration(line)) {

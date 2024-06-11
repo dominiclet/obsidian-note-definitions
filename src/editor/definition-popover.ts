@@ -104,7 +104,7 @@ export class DefinitionPopover extends Component {
 		if (def.aliases.length > 0) {
 			el.createEl("i", { text: def.aliases.join(", ") });
 		}
-		const contentEl = el.createEl("p");
+		const contentEl = el.createEl("div");
 		contentEl.setAttr("ctx", "def-popup");
 
 		const currComponent = this;
