@@ -1,7 +1,7 @@
 import { Menu, Plugin } from 'obsidian';
 import { injectGlobals } from './globals';
 import { logDebug } from './util/log';
-import { definitionMarker } from './editor/underline';
+import { definitionMarker } from './editor/marker';
 import { Extension } from '@codemirror/state';
 import { DefManager, initDefFileManager } from './core/def-file-manager';
 import { getWordUnderCursor } from './util/editor';

@@ -75,7 +75,9 @@ export class DefinitionMarker implements PluginValue {
 			internalOffset += line.length + 1;
 		});
 
-		// Decorations need to be sorted by 'from'
+		// Decorations need to be sorted by 'from' ascending, then 'to' descending
+		// This allows us to prefer longer words over shorter ones
+		phraseInfos.sort((a, b) => b.to - a.to);
 		phraseInfos.sort((a, b) => a.from - b.from);
 		return this.removeSubsetsAndIntersects(phraseInfos)
 	}
