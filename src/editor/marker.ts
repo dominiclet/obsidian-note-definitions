@@ -8,6 +8,7 @@ import {
   ViewPlugin,
   ViewUpdate,
 } from "@codemirror/view";
+import { getSettings, PopoverEventSettings } from "src/settings";
 import { logDebug } from "src/util/log";
 import { LineScanner } from "./definition-search";
 
@@ -23,6 +24,8 @@ export class DefinitionMarker implements PluginValue {
 	readonly cnLangRegex = /\p{Script=Han}/u;
 	readonly terminatingCharRegex = /[!@#$%^&*()\+={}[\]:;"'<>,.?\/|\\\r\n ]/;
 
+	readonly triggerFunc = 'event.stopPropagation();window.NoteDefinition.triggerDefPreview(this);';
+
 	decorations: DecorationSet;
 
 	constructor(view: EditorView) {
@@ -30,7 +33,7 @@ export class DefinitionMarker implements PluginValue {
 	}
 
 	update(update: ViewUpdate) {
-		if (update.docChanged || update.viewportChanged) {
+		if (update.docChanged || update.viewportChanged || update.focusChanged) {
 			const start = performance.now();
 			this.decorations = this.buildDecorations(update.view);
 			const end = performance.now();
@@ -51,12 +54,19 @@ export class DefinitionMarker implements PluginValue {
 		}
 
 		phraseInfos.forEach(wordPos => {
+			let attributes: { [key: string]: string } = {
+				def: wordPos.phrase,
+			}
+			const settings = getSettings();
+			if (settings.popoverEvent === PopoverEventSettings.Click) {
+				attributes.onclick = this.triggerFunc;
+			} else {
+				attributes.onmouseenter = this.triggerFunc;
+			}
+
 			builder.add(wordPos.from, wordPos.to, Decoration.mark({
 				class: 'def-decoration',
-				attributes: {
-					onmouseenter: `window.NoteDefinition.triggerDefPreview(this)`,
-					def: wordPos.phrase
-				}
+				attributes: attributes,
 			}));
 		});
 		return builder.finish();

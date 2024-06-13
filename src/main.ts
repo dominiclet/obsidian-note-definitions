@@ -65,14 +65,8 @@ export default class NoteDefinition extends Plugin {
 	registerEvents() {
 		this.registerEvent(this.app.workspace.on("active-leaf-change", async (leaf) => {
 			if (!leaf) return;
-			const currFile = this.app.workspace.getActiveFile();
-			if (currFile && this.defManager.isDefFile(currFile)) {
-				// TODO: Editor extension for definition file
-				this.setActiveEditorExtensions([]);
-			} else {
-				this.setActiveEditorExtensions(definitionMarker);
-			}
-			this.defManager.loadDefinitions();
+			this.refreshDefinitions();
+			this.registerEditorExts();
 		}));
 
 		// Add editor menu option to preview definition
@@ -96,7 +90,21 @@ export default class NoteDefinition extends Plugin {
 		})
 	}
 
-	setActiveEditorExtensions(...ext: Extension[]) {
+	refreshDefinitions() {
+		this.defManager.loadDefinitions();
+	}
+
+	registerEditorExts() {
+		const currFile = this.app.workspace.getActiveFile();
+		if (currFile && this.defManager.isDefFile(currFile)) {
+			// TODO: Editor extension for definition file
+			this.setActiveEditorExtensions([]);
+		} else {
+			this.setActiveEditorExtensions(definitionMarker);
+		}
+	}
+
+	private setActiveEditorExtensions(...ext: Extension[]) {
 		this.activeEditorExtensions.length = 0;
 		this.activeEditorExtensions.push(...ext);
 		this.app.workspace.updateOptions();

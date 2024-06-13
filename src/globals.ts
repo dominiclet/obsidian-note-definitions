@@ -15,7 +15,7 @@ export interface GlobalVars {
 	definitions: {
 		global: Map<string, Definition>;
 	};
-	triggerDefPreview: (el: any) => void;
+	triggerDefPreview: (el: HTMLElement) => void;
 	settings: Settings;
 }
 
@@ -28,7 +28,6 @@ export function injectGlobals(settings: Settings) {
 		},
 		triggerDefPreview: (el: HTMLElement) => {
 			const word = el.getAttr('def');
-
 			if (!word) return;
 
 			const def = getDefFileManager().get(word);
@@ -37,15 +36,19 @@ export function injectGlobals(settings: Settings) {
 			const defPopover = getDefinitionPopover();
 			let isOpen = false;
 
-			const openPopover = setTimeout(() => {
-				defPopover.openAtCoords(def, el.getBoundingClientRect());
-			}, 200);
+			if (el.onmouseenter) {
+				const openPopover = setTimeout(() => {
+					defPopover.openAtCoords(def, el.getBoundingClientRect());
+				}, 200);
 
-			el.onmouseleave = () => {
-				if (!isOpen) {
-					clearTimeout(openPopover);
+				el.onmouseleave = () => {
+					if (!isOpen) {
+						clearTimeout(openPopover);
+					}
 				}
+				return;
 			}
+			defPopover.openAtCoords(def, el.getBoundingClientRect());
 		},
 		settings,
 	}
