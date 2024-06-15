@@ -19,6 +19,12 @@ interface PhraseInfo {
 	phrase: string;
 }
 
+let markedPhrases: PhraseInfo[] = [];
+
+export function getMarkedPhrases(): PhraseInfo[] {
+	return markedPhrases;
+}
+
 // View plugin to mark definitions
 export class DefinitionMarker implements PluginValue {
 	readonly cnLangRegex = /\p{Script=Han}/u;
@@ -69,6 +75,8 @@ export class DefinitionMarker implements PluginValue {
 				attributes: attributes,
 			}));
 		});
+
+		markedPhrases = phraseInfos;
 		return builder.finish();
 	}
 

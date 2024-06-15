@@ -4,11 +4,11 @@ import { logDebug } from './util/log';
 import { definitionMarker } from './editor/marker';
 import { Extension } from '@codemirror/state';
 import { DefManager, initDefFileManager } from './core/def-file-manager';
-import { getWordUnderCursor } from './util/editor';
 import { Definition } from './core/model';
 import { getDefinitionPopover, initDefinitionPopover } from './editor/definition-popover';
 import { postProcessor } from './editor/md-postprocessor';
 import { DEFAULT_SETTINGS, SettingsTab } from './settings';
+import { getMarkedWordUnderCursor } from './util/editor';
 
 export default class NoteDefinition extends Plugin {
 	activeEditorExtensions: Extension[] = [];
@@ -41,7 +41,7 @@ export default class NoteDefinition extends Plugin {
 			id: "preview-definition",
 			name: "Preview definition",
 			editorCallback: (editor) => {
-				const curWord = getWordUnderCursor(editor);
+				const curWord = getMarkedWordUnderCursor(editor);
 				if (!curWord) return;
 				const def = window.NoteDefinition.definitions.global.get(curWord);
 				if (!def) return;
@@ -53,7 +53,7 @@ export default class NoteDefinition extends Plugin {
 			id: "goto-definition",
 			name: "Go to definition",
 			editorCallback: (editor) => {
-				const currWord = getWordUnderCursor(editor);
+				const currWord = getMarkedWordUnderCursor(editor);
 				if (!currWord) return;
 				const def = this.defManager.get(currWord);
 				if (!def) return;
@@ -71,7 +71,7 @@ export default class NoteDefinition extends Plugin {
 
 		// Add editor menu option to preview definition
 		this.registerEvent(this.app.workspace.on("editor-menu", (menu, editor) => {
-			const curWord = getWordUnderCursor(editor);
+			const curWord = getMarkedWordUnderCursor(editor);
 			if (!curWord) return;
 			const def = this.defManager.get(curWord);
 			if (!def) return;
