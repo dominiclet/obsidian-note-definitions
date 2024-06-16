@@ -92,7 +92,7 @@ export class DefinitionMarker implements PluginValue {
 	private removeSubsetsAndIntersects(phraseInfos: PhraseInfo[]): PhraseInfo[] {
 		let cursor = 0;
 		return phraseInfos.filter(phraseInfo => {
-			if (phraseInfo.from > cursor) {
+			if (phraseInfo.from >= cursor) {
 				cursor = phraseInfo.to;
 				return true;
 			}

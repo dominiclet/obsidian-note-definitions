@@ -37,7 +37,11 @@ const rebuildHTML = (parent: Node) => {
 				continue;
 			}
 
+			// Decorations need to be sorted by 'from' ascending, then 'to' descending
+			// This allows us to prefer longer words over shorter ones
+			phraseInfos.sort((a, b) => b.to - a.to);
 			phraseInfos.sort((a, b) => a.from - b.from);
+
 			let currCursor = 0;
 			const newContainer = parent.createSpan();
 			const addedMarks: Marks[] = [];
@@ -62,6 +66,7 @@ const rebuildHTML = (parent: Node) => {
 				})
 				currCursor = phraseInfo.to;
 			});
+
 			newContainer.appendText(currText.slice(currCursor));
 			childNode.replaceWith(newContainer);
 		}
