@@ -82,8 +82,7 @@ export class DefinitionPopover extends Component {
 		return cmEditor;
 	}
 
-	// True if open towards right, otherwise left
-	private shouldOpenToRight(horizontalOffset: number, containerStyle: CSSStyleDeclaration): boolean {
+	private shouldOpenToLeft(horizontalOffset: number, containerStyle: CSSStyleDeclaration): boolean {
 		return horizontalOffset > parseInt(containerStyle.width) / 2;
 	}
 
@@ -132,19 +131,22 @@ export class DefinitionPopover extends Component {
 
 		const positionStyle: Partial<CSSStyleDeclaration> = {
 			visibility: 'visible',
-			maxWidth: '500px'
 		};
 
-		if (this.shouldOpenToRight(coords.left, workspaceStyle)) {
+		if (this.shouldOpenToLeft(coords.left, workspaceStyle)) {
 			positionStyle.right = `${parseInt(workspaceStyle.width) - coords.left}px`;
+			positionStyle.maxWidth = 'max(calc(100vw / 3))';
 		} else {
 			positionStyle.left = `${coords.left}px`;
+			positionStyle.maxWidth = 'max(calc(100vw / 3))';
 		}
 
 		if (this.shouldOpenUpwards(coords.top, workspaceStyle)) {
 			positionStyle.bottom = `${parseInt(workspaceStyle.height) - coords.top}px`;
+			positionStyle.maxHeight = `${coords.top}px`;
 		} else {
 			positionStyle.top = `${coords.bottom}px`;
+			positionStyle.maxHeight = `calc(100vh - ${coords.bottom}px)`;
 		}
 
 		this.mountedPopover.setCssStyles(positionStyle);

@@ -5,8 +5,9 @@
 	position: absolute;
 	padding: var(--size-4-2) var(--size-4-3);
 	box-shadow: var(--shadow-s);
-	min-height: 150px;
-	min-width: 200px;
+	min-height: 100px;
+	min-width: 150px;
+	overflow: auto;
 }
 
 .def-decoration {
