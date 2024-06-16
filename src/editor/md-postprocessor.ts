@@ -1,4 +1,5 @@
 import { MarkdownPostProcessor } from "obsidian";
+import { DEF_DECORATION_CLS, getDecorationAttrs } from "./common";
 import { LineScanner, PhraseInfo } from "./definition-search";
 
 interface Marks {
@@ -48,12 +49,10 @@ const rebuildHTML = (parent: Node) => {
 				}
 
 				newContainer.appendText(currText.slice(currCursor, phraseInfo.from));
+				const attributes = getDecorationAttrs(phraseInfo.phrase);
 				const span = newContainer.createSpan({
-					cls: "def-decoration",
-					attr: {
-						def: phraseInfo.phrase,
-						onmouseenter: "window.NoteDefinition.triggerDefPreview(this)"
-					},
+					cls: DEF_DECORATION_CLS,
+					attr: attributes,
 					text: currText.slice(phraseInfo.from, phraseInfo.to),
 				});
 				newContainer.appendChild(span);

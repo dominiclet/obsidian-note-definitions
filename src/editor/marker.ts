@@ -8,8 +8,8 @@ import {
   ViewPlugin,
   ViewUpdate,
 } from "@codemirror/view";
-import { getSettings, PopoverEventSettings } from "src/settings";
 import { logDebug } from "src/util/log";
+import { DEF_DECORATION_CLS, getDecorationAttrs } from "./common";
 import { LineScanner } from "./definition-search";
 
 // Information of phrase that can be used to add decorations within the editor
@@ -29,8 +29,6 @@ export function getMarkedPhrases(): PhraseInfo[] {
 export class DefinitionMarker implements PluginValue {
 	readonly cnLangRegex = /\p{Script=Han}/u;
 	readonly terminatingCharRegex = /[!@#$%^&*()\+={}[\]:;"'<>,.?\/|\\\r\n ]/;
-
-	readonly triggerFunc = 'event.stopPropagation();window.NoteDefinition.triggerDefPreview(this);';
 
 	decorations: DecorationSet;
 
@@ -60,18 +58,9 @@ export class DefinitionMarker implements PluginValue {
 		}
 
 		phraseInfos.forEach(wordPos => {
-			let attributes: { [key: string]: string } = {
-				def: wordPos.phrase,
-			}
-			const settings = getSettings();
-			if (settings.popoverEvent === PopoverEventSettings.Click) {
-				attributes.onclick = this.triggerFunc;
-			} else {
-				attributes.onmouseenter = this.triggerFunc;
-			}
-
+			const attributes = getDecorationAttrs(wordPos.phrase);
 			builder.add(wordPos.from, wordPos.to, Decoration.mark({
-				class: 'def-decoration',
+				class: DEF_DECORATION_CLS,
 				attributes: attributes,
 			}));
 		});
