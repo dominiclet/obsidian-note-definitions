@@ -1,4 +1,5 @@
 import { App, TFile, Vault } from "obsidian";
+import { DefFileParseConfig, getSettings } from "src/settings";
 import { Definition } from "./model";
 
 
@@ -94,7 +95,11 @@ export class FileParser {
 	}
 
 	private isEndOfBlock(line: string): boolean {
-		return line.startsWith("---");
+		const parseSettings = this.getParseSettings();
+		if (parseSettings.divider.dash && line.startsWith("---")) {
+			return true;
+		}
+		return parseSettings.divider.underscore && line.startsWith("___");
 	}
 
 	private isAliasDeclaration(line: string): boolean {
@@ -124,5 +129,9 @@ export class FileParser {
 	private startNewBlock() {
 		this.inDefinition = false;
 		this.defBuffer = {};
+	}
+
+	private getParseSettings(): DefFileParseConfig {
+		return getSettings().defFileParseConfig;
 	}
 }
