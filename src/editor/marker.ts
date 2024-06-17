@@ -27,9 +27,6 @@ export function getMarkedPhrases(): PhraseInfo[] {
 
 // View plugin to mark definitions
 export class DefinitionMarker implements PluginValue {
-	readonly cnLangRegex = /\p{Script=Han}/u;
-	readonly terminatingCharRegex = /[!@#$%^&*()\+={}[\]:;"'<>,.?\/|\\\r\n ]/;
-
 	decorations: DecorationSet;
 
 	constructor(view: EditorView) {

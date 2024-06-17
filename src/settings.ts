@@ -1,4 +1,4 @@
-import { App, Modal, Notice, PluginSettingTab, Setting } from "obsidian";
+import { App, Modal, Notice, PluginSettingTab, Setting, setTooltip } from "obsidian";
 import NoteDefinition from "./main";
 
 export enum PopoverEventSettings {
@@ -62,14 +62,15 @@ export class SettingsTab extends PluginSettingTab {
 			});
 		new Setting(containerEl)
 			.setName("Definitions folder")
-			.setDesc("Files within this folder will be parsed to register definitions (specify relative to root of vault)")
+			.setDesc("Files within this folder will be parsed to register definitions")
 			.addText((component) => {
 				component.setValue(this.settings.defFolder);
 				component.setPlaceholder(DEFAULT_DEF_FOLDER);
-				component.onChange(async value => {
-					this.settings.defFolder = value;
-					await this.plugin.saveSettings();
-					this.plugin.refreshDefinitions();
+				component.setDisabled(true)
+				setTooltip(component.inputEl, 
+					"In the file explorer, right-click on the desired folder and click on 'Set definition folder' to change the definition folder",
+				{
+					delay: 100
 				});
 			});
 		new Setting(containerEl)

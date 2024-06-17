@@ -1,4 +1,4 @@
-import { Menu, Plugin } from 'obsidian';
+import { Menu, Plugin, TFolder } from 'obsidian';
 import { injectGlobals } from './globals';
 import { logDebug } from './util/log';
 import { definitionMarker } from './editor/marker';
@@ -7,12 +7,14 @@ import { DefManager, initDefFileManager } from './core/def-file-manager';
 import { Definition } from './core/model';
 import { getDefinitionPopover, initDefinitionPopover } from './editor/definition-popover';
 import { postProcessor } from './editor/md-postprocessor';
-import { DEFAULT_SETTINGS, SettingsTab } from './settings';
+import { DEFAULT_SETTINGS, getSettings, SettingsTab } from './settings';
 import { getMarkedWordUnderCursor } from './util/editor';
+import { FileExplorerDecoration, initFileExplorerDecoration } from './ui/file-explorer';
 
 export default class NoteDefinition extends Plugin {
 	activeEditorExtensions: Extension[] = [];
 	defManager: DefManager;
+	fileExplorerDeco: FileExplorerDecoration;
 
 	async onload() {
 		// Settings are injected into global object
@@ -23,6 +25,7 @@ export default class NoteDefinition extends Plugin {
 
 		initDefinitionPopover(this);
 		this.defManager = initDefFileManager(this.app);
+		this.fileExplorerDeco = initFileExplorerDecoration(this.app);
 
 		this.registerCommands();
 		this.registerEvents();
@@ -30,10 +33,14 @@ export default class NoteDefinition extends Plugin {
 
 		this.addSettingTab(new SettingsTab(this.app, this));
 		this.registerMarkdownPostProcessor(postProcessor);
+
+		this.fileExplorerDeco.run();
 	}
 
 	async saveSettings() {
 		await this.saveData(window.NoteDefinition.settings);
+		this.fileExplorerDeco.run();
+		this.refreshDefinitions();
 	}
 
 	registerCommands() {
@@ -78,6 +85,20 @@ export default class NoteDefinition extends Plugin {
 			this.registerMenuItems(menu, def);
 		}));
 
+		// Add file menu options
+		this.registerEvent(this.app.workspace.on("file-menu", (menu, file, source) => {
+			if (file instanceof TFolder) {
+				menu.addItem(item => {
+					item.setTitle("Set definition folder")
+						.setIcon("book-a")
+						.onClick(() => {
+							const settings = getSettings();
+							settings.defFolder = file.path;
+							this.saveSettings();
+						});
+				});
+			}
+		}));
 	}
 
 	registerMenuItems(menu: Menu, def: Definition) {
