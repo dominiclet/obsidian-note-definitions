@@ -1,4 +1,4 @@
-import { getDefFileManager } from "./core/def-file-manager";
+import { DefinitionRepo, getDefFileManager } from "./core/def-file-manager";
 import { Definition } from "./core/model";
 import { getDefinitionPopover } from "./editor/definition-popover";
 import { Settings } from "./settings";
@@ -13,7 +13,7 @@ declare global {
 export interface GlobalVars {
 	LOG_LEVEL: LogLevel;
 	definitions: {
-		global: Map<string, Definition>;
+		global: DefinitionRepo;
 	};
 	triggerDefPreview: (el: HTMLElement) => void;
 	settings: Settings;
@@ -24,7 +24,7 @@ export function injectGlobals(settings: Settings) {
 	window.NoteDefinition = {
 		LOG_LEVEL: window.NoteDefinition?.LOG_LEVEL || LogLevel.Error,
 		definitions: {
-			global: new Map<string, Definition>(),
+			global: new DefinitionRepo(),
 		},
 		triggerDefPreview: (el: HTMLElement) => {
 			const word = el.getAttr('def');

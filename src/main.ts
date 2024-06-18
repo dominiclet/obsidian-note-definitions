@@ -26,10 +26,11 @@ export default class NoteDefinition extends Plugin {
 		initDefinitionPopover(this);
 		this.defManager = initDefFileManager(this.app);
 		this.fileExplorerDeco = initFileExplorerDecoration(this.app);
+		this.registerEditorExtension(this.activeEditorExtensions);
+		this.updateEditorExts();
 
 		this.registerCommands();
 		this.registerEvents();
-		this.registerEditorExtension(this.activeEditorExtensions);
 
 		this.addSettingTab(new SettingsTab(this.app, this));
 		this.registerMarkdownPostProcessor(postProcessor);
@@ -72,8 +73,8 @@ export default class NoteDefinition extends Plugin {
 	registerEvents() {
 		this.registerEvent(this.app.workspace.on("active-leaf-change", async (leaf) => {
 			if (!leaf) return;
-			this.refreshDefinitions();
-			this.registerEditorExts();
+			this.reloadUpdatedDefinitions();
+			this.updateEditorExts();
 		}));
 
 		// Add editor menu option to preview definition
@@ -115,7 +116,11 @@ export default class NoteDefinition extends Plugin {
 		this.defManager.loadDefinitions();
 	}
 
-	registerEditorExts() {
+	reloadUpdatedDefinitions() {
+		this.defManager.loadUpdatedFiles();
+	}
+
+	updateEditorExts() {
 		const currFile = this.app.workspace.getActiveFile();
 		if (currFile && this.defManager.isDefFile(currFile)) {
 			// TODO: Editor extension for definition file
