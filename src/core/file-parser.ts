@@ -1,6 +1,6 @@
 import { App, TFile, Vault } from "obsidian";
 import { DefFileParseConfig, getSettings } from "src/settings";
-import { Definition } from "./model";
+import { Definition, FilePosition } from "./model";
 
 
 export class FileParser {
@@ -11,9 +11,12 @@ export class FileParser {
 		word?: string;
 		aliases?: string[];
 		definition?: string;
+		filePosition?: Partial<FilePosition>;
 	};
 	inDefinition: boolean;
 	definitions: Definition[];
+
+	currLine: number;
 
 	constructor(app: App, file: TFile) {
 		this.app = app;
@@ -24,11 +27,16 @@ export class FileParser {
 		this.definitions = [];
 	}
 
-	async parseFile(): Promise<Definition[]> {
-		const fileContent = await this.vault.cachedRead(this.file)
+	async parseFile(fileContent?: string): Promise<Definition[]> {
+		if (!fileContent) {
+			fileContent = await this.vault.cachedRead(this.file)
+		}
 		const lines = fileContent.split('\n');
+		this.currLine = -1;
 
 		for (const line of lines) {
+			this.currLine++;
+
 			if (this.isEndOfBlock(line)) {
 				if (this.bufferValid()) {
 					this.commitDefBuffer();
@@ -46,6 +54,10 @@ export class FileParser {
 				continue
 			}
 			if (this.isWordDeclaration(line)) {
+				let from = this.currLine;
+				this.defBuffer.filePosition = {
+					from: from,
+				}
 				this.defBuffer.word = this.extractWordDeclaration(line);
 				continue
 			}
@@ -56,8 +68,8 @@ export class FileParser {
 			// Begin definition
 			this.inDefinition = true;
 			this.defBuffer.definition = line + "\n";
-
 		}
+		this.currLine++;
 		if (this.bufferValid()) {
 			this.commitDefBuffer();
 		}
@@ -73,6 +85,10 @@ export class FileParser {
 			definition: this.defBuffer.definition ?? "",
 			file: this.file,
 			linkText: `${this.file.path}${this.defBuffer.word ? '#'+this.defBuffer.word : ''}`,
+			position: {
+				from: this.defBuffer.filePosition?.from ?? 0, 
+				to: this.currLine-1,
+			}
 		});
 		// Register aliases
 		if (this.defBuffer.aliases && this.defBuffer.aliases.length > 0) {
@@ -84,6 +100,10 @@ export class FileParser {
 					definition: this.defBuffer.definition ?? "",
 					file: this.file,
 					linkText: `${this.file.path}${this.defBuffer.word ? '#'+this.defBuffer.word : ''}`,
+					position: {
+						from: this.defBuffer.filePosition?.from ?? 0, 
+						to: this.currLine-1,
+					}
 				});
 			});
 		}
@@ -128,7 +148,6 @@ export class FileParser {
 
 	private startNewBlock() {
 		this.inDefinition = false;
-		this.defBuffer = {};
 	}
 
 	private getParseSettings(): DefFileParseConfig {

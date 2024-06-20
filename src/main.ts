@@ -10,6 +10,7 @@ import { postProcessor } from './editor/md-postprocessor';
 import { DEFAULT_SETTINGS, getSettings, SettingsTab } from './settings';
 import { getMarkedWordUnderCursor } from './util/editor';
 import { FileExplorerDecoration, initFileExplorerDecoration } from './ui/file-explorer';
+import { EditDefinitionModal } from './editor/edit-modal';
 
 export default class NoteDefinition extends Plugin {
 	activeEditorExtensions: Extension[] = [];
@@ -79,6 +80,11 @@ export default class NoteDefinition extends Plugin {
 
 		// Add editor menu option to preview definition
 		this.registerEvent(this.app.workspace.on("editor-menu", (menu, editor) => {
+			const defPopover = getDefinitionPopover();
+			if (defPopover) {
+				defPopover.close();
+			}
+
 			const curWord = getMarkedWordUnderCursor(editor);
 			if (!curWord) return;
 			const def = this.defManager.get(curWord);
@@ -110,6 +116,15 @@ export default class NoteDefinition extends Plugin {
 					this.app.workspace.openLinkText(def.linkText, '');
 				});
 		})
+
+		menu.addItem(item => {
+			item.setTitle("Edit definition")
+				.setIcon("pencil")
+				.onClick(() => {
+					const editModal = new EditDefinitionModal(this.app);
+					editModal.open(def);
+				});
+		});
 	}
 
 	refreshDefinitions() {

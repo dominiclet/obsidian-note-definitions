@@ -151,6 +151,10 @@ export class DefinitionRepo {
 			defMap = new Map<string, Definition>;
 			this.fileDefMap.set(def.file.path, defMap);
 		}
+		// Prefer the first encounter over subsequent collisions
+		if (defMap.has(def.key)) {
+			return;
+		}
 		defMap.set(def.key, def);
 	}
 

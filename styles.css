@@ -13,3 +13,29 @@
 .def-decoration {
 	text-decoration: underline var(--color-yellow) dotted;
 }
+
+.edit-modal-section-header {
+	margin-top: 5px;
+	margin-bottom: 5px;
+	color: var(--text-muted)
+}
+
+.edit-modal-aliases {
+	width: 100%;
+	resize: none;
+	font-size: var(--font-text-size);
+	height: 2em;
+}
+
+.edit-modal-textarea {
+	width: 100%;
+	height: 20vh;
+	resize: none;
+	font-size: var(--font-text-size);
+}
+
+.edit-modal-save-button {
+	font-size: var(--font-text-size);
+	float: right;
+	background-color: var(--interactive-normal);
+}
