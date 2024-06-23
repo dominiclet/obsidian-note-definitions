@@ -64,6 +64,8 @@ Example definition file:
 > 
 > You can also define a phrase containing multiple words. 
 >
+> ---
+>
 > # Markdown support
 > 
 > Markdown is supported so you can do things like including *italics* or **bold** words.
