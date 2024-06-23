@@ -3,6 +3,7 @@ import { PTreeNode } from "src/editor/prefix-tree";
 import { DEFAULT_DEF_FOLDER } from "src/settings";
 import { normaliseWord } from "src/util/editor";
 import { logDebug, logWarn } from "src/util/log";
+import { useRetry } from "src/util/retry";
 import { FileParser } from "./file-parser";
 import { Definition } from "./model";
 
@@ -20,7 +21,7 @@ export class DefManager {
 		this.globalDefs = new DefinitionRepo();
 		this.globalDefFiles = new Map<string, TFile>();
 		this.prefixTree = new PTreeNode();
-		this.lastUpdate = Date.now();
+		this.lastUpdate = 0;
 
 		window.NoteDefinition.definitions.global = this.globalDefs;
 
@@ -73,7 +74,16 @@ export class DefManager {
 	}
 
 	private async loadGlobals() {
-		const globalFolder = this.app.vault.getFolderByPath(this.getGlobalDefFolder());
+		const retry = useRetry();
+		let globalFolder: TFolder | null = null;
+		// Retry is needed here as getFolderByPath may return null when being called on app startup
+		await retry.exec(() => {
+			globalFolder = this.app.vault.getFolderByPath(this.getGlobalDefFolder());
+			if (!globalFolder) {
+				retry.setShouldRetry();
+			}
+		});
+
 		if (!globalFolder) {
 			logWarn("Global definition folder not found, unable to load global definitions");
 			return
@@ -86,6 +96,7 @@ export class DefManager {
 		});
 
 		this.buildPrefixTree();
+		this.lastUpdate = Date.now();
 	}
 
 	private async buildPrefixTree() {
