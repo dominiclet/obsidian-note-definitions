@@ -23,7 +23,7 @@
 .edit-modal-aliases {
 	width: 100%;
 	resize: none;
-	font-size: var(--font-text-size);
+	font-size: var(--font-ui-medium);
 	height: 2em;
 }
 
@@ -31,11 +31,12 @@
 	width: 100%;
 	height: 20vh;
 	resize: none;
-	font-size: var(--font-text-size);
+	font-size: var(--font-ui-medium);
+	margin-bottom: 10px;
 }
 
 .edit-modal-save-button {
-	font-size: var(--font-text-size);
+	font-size: var(--font-ui-medium);
 	float: right;
 	background-color: var(--interactive-normal);
 }
