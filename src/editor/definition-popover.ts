@@ -134,7 +134,7 @@ export class DefinitionPopover extends Component {
 		};
 
 		if (this.shouldOpenToLeft(coords.left, workspaceStyle)) {
-			positionStyle.right = `${parseInt(workspaceStyle.width) - coords.left}px`;
+			positionStyle.right = `${parseInt(workspaceStyle.width) - coords.right}px`;
 			positionStyle.maxWidth = 'max(calc(100vw / 3))';
 		} else {
 			positionStyle.left = `${coords.left}px`;
