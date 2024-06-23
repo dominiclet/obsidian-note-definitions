@@ -11,6 +11,7 @@ import { DEFAULT_SETTINGS, getSettings, SettingsTab } from './settings';
 import { getMarkedWordUnderCursor } from './util/editor';
 import { FileExplorerDecoration, initFileExplorerDecoration } from './ui/file-explorer';
 import { EditDefinitionModal } from './editor/edit-modal';
+import { AddDefinitionModal } from './editor/add-modal';
 
 export default class NoteDefinition extends Plugin {
 	activeEditorExtensions: Extension[] = [];
@@ -68,7 +69,17 @@ export default class NoteDefinition extends Plugin {
 				if (!def) return;
 				this.app.workspace.openLinkText(def.linkText, '');
 			}
-		})
+		});
+
+		this.addCommand({
+			id: "add-definition",
+			name: "Add definition",
+			editorCallback: (editor) => {
+				const selectedText = editor.getSelection();
+				const addModal = new AddDefinitionModal(this.app);
+				addModal.open(selectedText);
+			}
+		});
 	}
 
 	registerEvents() {
@@ -78,7 +89,6 @@ export default class NoteDefinition extends Plugin {
 			this.updateEditorExts();
 		}));
 
-		// Add editor menu option to preview definition
 		this.registerEvent(this.app.workspace.on("editor-menu", (menu, editor) => {
 			const defPopover = getDefinitionPopover();
 			if (defPopover) {
@@ -86,10 +96,24 @@ export default class NoteDefinition extends Plugin {
 			}
 
 			const curWord = getMarkedWordUnderCursor(editor);
-			if (!curWord) return;
+			if (!curWord) {
+				if (editor.getSelection()) {
+					menu.addItem(item => {
+						item.setTitle("Add definition")
+						item.setIcon("plus")
+						.onClick(() => {
+								const addModal = new AddDefinitionModal(this.app);
+								addModal.open(editor.getSelection());
+						});
+					});
+				}
+				return;
+			};
 			const def = this.defManager.get(curWord);
-			if (!def) return;
-			this.registerMenuItems(menu, def);
+			if (!def) {
+				return;
+			};
+			this.registerMenuForMarkedWords(menu, def);
 		}));
 
 		// Add file menu options
@@ -108,7 +132,7 @@ export default class NoteDefinition extends Plugin {
 		}));
 	}
 
-	registerMenuItems(menu: Menu, def: Definition) {
+	registerMenuForMarkedWords(menu: Menu, def: Definition) {
 		menu.addItem((item) => {
 			item.setTitle("Go to definition")
 				.setIcon("arrow-left-from-line")
