@@ -1,6 +1,8 @@
+import { Platform } from "obsidian";
 import { DefinitionRepo, getDefFileManager } from "./core/def-file-manager";
 import { Definition } from "./core/model";
 import { getDefinitionPopover } from "./editor/definition-popover";
+import { DefinitionModal, getDefinitionModal } from "./editor/mobile/definition-modal";
 import { Settings } from "./settings";
 import { LogLevel } from "./util/log";
 
@@ -32,6 +34,12 @@ export function injectGlobals(settings: Settings) {
 
 			const def = getDefFileManager().get(word);
 			if (!def) return;
+
+			if (Platform.isMobile) {
+				const defModal = getDefinitionModal();
+				defModal.open(def);
+				return;
+			}
 
 			const defPopover = getDefinitionPopover();
 			let isOpen = false;

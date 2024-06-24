@@ -12,6 +12,7 @@ import { getMarkedWordUnderCursor } from './util/editor';
 import { FileExplorerDecoration, initFileExplorerDecoration } from './ui/file-explorer';
 import { EditDefinitionModal } from './editor/edit-modal';
 import { AddDefinitionModal } from './editor/add-modal';
+import { initDefinitionModal } from './editor/mobile/definition-modal';
 
 export default class NoteDefinition extends Plugin {
 	activeEditorExtensions: Extension[] = [];
@@ -26,6 +27,7 @@ export default class NoteDefinition extends Plugin {
 		logDebug("Load note definition plugin");
 
 		initDefinitionPopover(this);
+		initDefinitionModal(this.app);
 		this.defManager = initDefFileManager(this.app);
 		this.fileExplorerDeco = initFileExplorerDecoration(this.app);
 		this.registerEditorExtension(this.activeEditorExtensions);
