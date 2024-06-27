@@ -15,11 +15,16 @@ export interface DefFileParseConfig {
 	divider: DividerSettings;
 }
 
+export interface DefinitionPopoverConfig {
+	displayDefFileName: boolean;
+}
+
 export interface Settings {
 	enableInReadingView: boolean;
 	defFolder: string;
 	popoverEvent: PopoverEventSettings;
 	defFileParseConfig: DefFileParseConfig;
+	defPopoverConfig: DefinitionPopoverConfig;
 }
 
 export const DEFAULT_DEF_FOLDER = "definitions"
@@ -32,6 +37,9 @@ export const DEFAULT_SETTINGS: Partial<Settings> = {
 			dash: true,
 			underscore: false
 		}
+	},
+	defPopoverConfig: {
+		displayDefFileName: false
 	}
 }
 
@@ -71,20 +79,6 @@ export class SettingsTab extends PluginSettingTab {
 					"In the file explorer, right-click on the desired folder and click on 'Set definition folder' to change the definition folder",
 				{
 					delay: 100
-				});
-			});
-		new Setting(containerEl)
-			.setName("Definition popover display event")
-			.setDesc("Choose the trigger event for displaying the definition popover")
-			.addDropdown((component) => {
-				component.addOption(PopoverEventSettings.Hover, "Hover");
-				component.addOption(PopoverEventSettings.Click, "Click");
-				component.setValue(this.settings.popoverEvent);
-				component.onChange(async value => {
-					if (value === PopoverEventSettings.Hover || value === PopoverEventSettings.Click) {
-						this.settings.popoverEvent = value;
-					}
-					await this.plugin.saveSettings();
 				});
 			});
 		new Setting(containerEl)
@@ -129,7 +123,37 @@ export class SettingsTab extends PluginSettingTab {
 						});
 					modal.open();
 				})
-			})
+			});
+
+		new Setting(containerEl)
+			.setHeading()
+			.setName("Definition Popover Settings");
+
+		new Setting(containerEl)
+			.setName("Definition popover display event")
+			.setDesc("Choose the trigger event for displaying the definition popover")
+			.addDropdown((component) => {
+				component.addOption(PopoverEventSettings.Hover, "Hover");
+				component.addOption(PopoverEventSettings.Click, "Click");
+				component.setValue(this.settings.popoverEvent);
+				component.onChange(async value => {
+					if (value === PopoverEventSettings.Hover || value === PopoverEventSettings.Click) {
+						this.settings.popoverEvent = value;
+					}
+					await this.plugin.saveSettings();
+				});
+			});
+
+		new Setting(containerEl)
+			.setName("Display source definition file")
+			.setDesc("Display the title of the definition's source file")
+			.addToggle(component => {
+				component.setValue(this.settings.defPopoverConfig.displayDefFileName);
+				component.onChange(async value => {
+					this.settings.defPopoverConfig.displayDefFileName = value;
+					await this.plugin.saveSettings();
+				});
+			});
 	}
 }
 

@@ -2,7 +2,7 @@ import { Platform } from "obsidian";
 import { DefinitionRepo, getDefFileManager } from "./core/def-file-manager";
 import { Definition } from "./core/model";
 import { getDefinitionPopover } from "./editor/definition-popover";
-import { DefinitionModal, getDefinitionModal } from "./editor/mobile/definition-modal";
+import { getDefinitionModal } from "./editor/mobile/definition-modal";
 import { Settings } from "./settings";
 import { LogLevel } from "./util/log";
 

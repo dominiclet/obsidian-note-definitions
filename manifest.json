@@ -1,7 +1,7 @@
 {
 	"id": "note-definitions",
 	"name": "Note Definitions",
-	"version": "0.15.0",
+	"version": "0.16.0",
 	"minAppVersion": "1.5.12",
 	"description": "Personal dictionary for your notes",
 	"author": "Dominic Let",

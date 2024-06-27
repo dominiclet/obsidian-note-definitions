@@ -10,6 +10,11 @@
 	overflow: auto;
 }
 
+.definition-popover-filename {
+	color: var(--text-faint);
+	float: right;
+}
+
 .def-decoration {
 	text-decoration: underline var(--color-yellow) dotted;
 }

@@ -1,5 +1,6 @@
 import { App, Component, MarkdownRenderer, MarkdownView, Plugin } from "obsidian";
 import { Definition } from "src/core/model";
+import { getSettings } from "src/settings";
 import { logDebug, logError } from "src/util/log";
 
 const DEF_POPOVER_ID = "definition-popover";
@@ -110,6 +111,13 @@ export class DefinitionPopover extends Component {
 		MarkdownRenderer.render(this.app, def.definition, contentEl, 
 			this.plugin.app.workspace.getActiveFile()?.path ?? '', currComponent);
 
+		const popoverSettings = getSettings().defPopoverConfig;
+		if (popoverSettings.displayDefFileName) {
+			el.createEl("div", {
+				text: def.file.basename,
+				cls: 'definition-popover-filename'
+			});
+		}
 		return el;
 	}
 
