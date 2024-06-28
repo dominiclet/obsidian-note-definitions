@@ -1,7 +1,8 @@
-import { App, Component, MarkdownRenderer, MarkdownView, Plugin } from "obsidian";
+import { App, Component, getLinkpath, MarkdownRenderer, MarkdownView, MetadataCache, normalizePath, Plugin } from "obsidian";
 import { Definition } from "src/core/model";
 import { getSettings } from "src/settings";
 import { logDebug, logError } from "src/util/log";
+import * as internal from "stream";
 
 const DEF_POPOVER_ID = "definition-popover";
 
@@ -109,7 +110,8 @@ export class DefinitionPopover extends Component {
 
 		const currComponent = this;
 		MarkdownRenderer.render(this.app, def.definition, contentEl, 
-			this.plugin.app.workspace.getActiveFile()?.path ?? '', currComponent);
+			normalizePath(def.file.path), currComponent);
+		this.postprocessMarkdown(contentEl, def);
 
 		const popoverSettings = getSettings().defPopoverConfig;
 		if (popoverSettings.displayDefFileName) {
@@ -119,6 +121,27 @@ export class DefinitionPopover extends Component {
 			});
 		}
 		return el;
+	}
+
+	// Internal links do not work properly in the popover
+	// This is to manually open internal links
+	private postprocessMarkdown(el: HTMLDivElement, def: Definition) {
+		const internalLinks = el.getElementsByClassName("internal-link");
+		for (let i = 0; i < internalLinks.length; i++) {
+			const linkEl = internalLinks.item(i);
+			if (linkEl) {
+				linkEl.addEventListener('click', e => {
+					e.preventDefault();
+					const file = this.app.metadataCache.getFirstLinkpathDest(linkEl.getAttr("href") ?? '', 
+						normalizePath(def.file.path))
+					this.unmount();
+					if (!file) {
+						return;
+					}
+					this.app.workspace.getLeaf().openFile(file)
+				});
+			}
+		}
 	}
 
 	private mountAtCursor(def: Definition) {
