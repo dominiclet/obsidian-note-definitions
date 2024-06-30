@@ -9,18 +9,25 @@ import { Definition } from "./model";
 
 let defFileManager: DefManager;
 
+export const DEF_CTX_FM_KEY = "def-context";
+
 export class DefManager {
 	app: App;
 	globalDefs: DefinitionRepo;
 	globalDefFiles: Map<string, TFile>;
-	prefixTree: PTreeNode;
+	globalPrefixTree: PTreeNode;
 	lastUpdate: number;
+
+	activeFile: TFile | null;
+	localPrefixTree: PTreeNode;
+	shouldUseLocalPTree: boolean;
 
 	constructor(app: App) {
 		this.app = app;
 		this.globalDefs = new DefinitionRepo();
 		this.globalDefFiles = new Map<string, TFile>();
-		this.prefixTree = new PTreeNode();
+		this.globalPrefixTree = new PTreeNode();
+		this.resetLocalConfigs()
 		this.lastUpdate = 0;
 
 		window.NoteDefinition.definitions.global = this.globalDefs;
@@ -28,12 +35,65 @@ export class DefManager {
 		this.loadDefinitions();
 	}
 
+	// Get the appropriate prefix tree to use for current active file
+	getPrefixTree() {
+		if (this.shouldUseLocalPTree) {
+			return this.localPrefixTree;
+		}
+		return this.globalPrefixTree;
+	}
+
+	// Updates active file and rebuilds local prefix tree if necessary
+	updateActiveFile() {
+		this.activeFile = this.app.workspace.getActiveFile();
+		this.resetLocalConfigs()
+		if (this.activeFile) {
+			const metadataCache = this.app.metadataCache.getFileCache(this.activeFile);
+			if (!metadataCache) {
+				return;
+			}
+			const fmCache = metadataCache.frontmatter?.[DEF_CTX_FM_KEY];
+			if (!fmCache) {
+				// No def-source specified
+				return;
+			}
+			if (!Array.isArray(fmCache)) {
+				logWarn("Unrecognised type for 'def-source' frontmatter");
+				return;
+			}
+			this.buildLocalPrefixTree(fmCache);
+			this.shouldUseLocalPTree = true;
+		}
+	}
+
+	// For manually updating definition sources, as metadata cache may not be the latest updated version
+	updateDefSources(defSource: string[]) {
+		this.resetLocalConfigs();
+		this.buildLocalPrefixTree(defSource);
+		this.shouldUseLocalPTree = true;
+	}
+
+	private buildLocalPrefixTree(fmCache: string[]) {
+		const root = new PTreeNode();
+		fmCache.forEach(filePath => {
+			const defMap = this.globalDefs.getMapForFile(filePath);
+			if (!defMap) {
+				logWarn(`Unrecognised file path '${filePath}'`)
+				return;
+			}
+			[...defMap.keys()].forEach(key => {
+				root.add(key, 0);
+			});
+		});
+		this.localPrefixTree = root;
+	}
+
 	isDefFile(file: TFile): boolean {
 		return file.path.startsWith(this.getGlobalDefFolder())
 	}
 
 	reset() {
-		this.prefixTree = new PTreeNode();
+		this.globalPrefixTree = new PTreeNode();
 		this.globalDefs.clear();
 		this.globalDefFiles = new Map<string, TFile>();
 	}
@@ -45,6 +105,10 @@ export class DefManager {
 
 	get(key: string) {
 		return this.globalDefs.get(normaliseWord(key));
+	}
+
+	getDefFiles(): TFile[] {
+		return [...this.globalDefFiles.values()]
 	}
 
 	async loadUpdatedFiles() {
@@ -71,6 +135,11 @@ export class DefManager {
 		}
 		this.buildPrefixTree();
 		this.lastUpdate = Date.now();
+	}
+
+	private resetLocalConfigs() {
+		this.localPrefixTree = new PTreeNode();
+		this.shouldUseLocalPTree = false;
 	}
 
 	private async loadGlobals() {
@@ -104,7 +173,7 @@ export class DefManager {
 		this.globalDefs.getAllKeys().forEach(key => {
 			root.add(key, 0);
 		});
-		this.prefixTree = root;
+		this.globalPrefixTree = root;
 	}
 
 	private async parseFolder(folder: TFolder): Promise<Definition[]> {
@@ -133,10 +202,15 @@ export class DefManager {
 }
 
 export class DefinitionRepo {
+	// file name -> {definition-key -> definition}
 	fileDefMap: Map<string, Map<string, Definition>>;
 
 	constructor() {
 		this.fileDefMap = new Map<string, Map<string, Definition>>();
+	}
+
+	getMapForFile(filePath: string) {
+		return this.fileDefMap.get(filePath);
 	}
 
 	get(key: string) {
