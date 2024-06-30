@@ -91,8 +91,8 @@ export class DefinitionPopover extends Component {
 		return verticalOffset > parseInt(containerStyle.height) / 2;
 	}
 
-	private createElement(def: Definition): HTMLDivElement {
-		const el = this.app.workspace.containerEl.createEl("div", {
+	private createElement(def: Definition, parent: HTMLElement): HTMLDivElement {
+		const el = parent.createEl("div", {
 			cls: "definition-popover",
 			attr: {
 				id: DEF_POPOVER_ID,
@@ -155,31 +155,53 @@ export class DefinitionPopover extends Component {
 		this.mountAtCoordinates(def, cursorCoords);
 	}
 
+	// Offset coordinates from viewport coordinates to coordinates relative to the parent container element
+	private offsetCoordsToContainer(coords: Coordinates, container: HTMLElement): Coordinates {
+		const containerRect = container.getBoundingClientRect();
+		return {
+			left: coords.left - containerRect.left,
+			right: coords.right - containerRect.left,
+			top: coords.top - containerRect.top,
+			bottom: coords.bottom - containerRect.top
+		}
+	}
+
 	private mountAtCoordinates(def: Definition, coords: Coordinates) {
-		const workspaceStyle = getComputedStyle(this.app.workspace.containerEl)
-		this.mountedPopover = this.createElement(def);
+		const mdView = this.app.workspace.getActiveViewOfType(MarkdownView)
+		if (!mdView) {
+			logError("Could not mount popover: No active markdown view found");
+			return;
+		}
+
+		this.mountedPopover = this.createElement(def, mdView.containerEl);
+		const containerStyle = getComputedStyle(mdView.containerEl);
+		const matchedClasses = mdView.containerEl.getElementsByClassName("view-header");
+		// The container div has a header element that needs to be accounted for
+		let offsetHeaderHeight = 0;
+		if (matchedClasses.length > 0) {
+			offsetHeaderHeight = parseInt(getComputedStyle(matchedClasses[0]).height);
+		}
+
+		// Offset coordinates to be relative to container
+		coords = this.offsetCoordsToContainer(coords, mdView.containerEl);
 
 		const positionStyle: Partial<CSSStyleDeclaration> = {
 			visibility: 'visible',
 		};
 
-		if (this.shouldOpenToLeft(coords.left, workspaceStyle)) {
-			positionStyle.right = `${parseInt(workspaceStyle.width) - coords.right}px`;
-			positionStyle.maxWidth = 'max(calc(100vw / 3))';
+		positionStyle.maxWidth = `${parseInt(containerStyle.width) / 2}px`;
+		if (this.shouldOpenToLeft(coords.left, containerStyle)) {
+			positionStyle.right = `${parseInt(containerStyle.width) - coords.right}px`;
 		} else {
 			positionStyle.left = `${coords.left}px`;
-			positionStyle.maxWidth = 'max(calc(100vw / 3))';
 		}
 
-		// Need to offset title bar height as it is not part of the workspace container
-		const titleBarHeightCSS = `100vh - ${workspaceStyle.height}`
-
-		if (this.shouldOpenUpwards(coords.top, workspaceStyle)) {
-			positionStyle.bottom = `calc(${parseInt(workspaceStyle.height) - coords.top}px + (${titleBarHeightCSS}))`;
-			positionStyle.maxHeight = `${coords.top}px`;
+		if (this.shouldOpenUpwards(coords.top, containerStyle)) {
+			positionStyle.bottom = `${parseInt(containerStyle.height) - coords.top}px`;
+			positionStyle.maxHeight = `${coords.top - offsetHeaderHeight}px`;
 		} else {
-			positionStyle.top = `calc(${coords.bottom}px - (${titleBarHeightCSS}))`;
-			positionStyle.maxHeight = `calc(100vh - ${coords.bottom}px)`;
+			positionStyle.top = `${coords.bottom}px`;
+			positionStyle.maxHeight = `${parseInt(containerStyle.height) - coords.bottom}px`;
 		}
 
 		this.mountedPopover.setCssStyles(positionStyle);
