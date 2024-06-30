@@ -1,7 +1,7 @@
-import { Menu, Plugin, TFolder } from 'obsidian';
+import { Menu, Notice, Plugin, TFolder } from 'obsidian';
 import { injectGlobals } from './globals';
 import { logDebug } from './util/log';
-import { definitionMarker } from './editor/marker';
+import { definitionMarker } from './editor/decoration';
 import { Extension } from '@codemirror/state';
 import { DefManager, initDefFileManager } from './core/def-file-manager';
 import { Definition } from './core/model';
@@ -13,6 +13,7 @@ import { FileExplorerDecoration, initFileExplorerDecoration } from './ui/file-ex
 import { EditDefinitionModal } from './editor/edit-modal';
 import { AddDefinitionModal } from './editor/add-modal';
 import { initDefinitionModal } from './editor/mobile/definition-modal';
+import { FMSuggestModal } from './editor/frontmatter-suggest-modal';
 
 export default class NoteDefinition extends Plugin {
 	activeEditorExtensions: Extension[] = [];
@@ -82,6 +83,20 @@ export default class NoteDefinition extends Plugin {
 				addModal.open(selectedText);
 			}
 		});
+
+		this.addCommand({
+			id: "add-def-context",
+			name: "Add definition context",
+			editorCallback: (editor) =>{
+				const activeFile = this.app.workspace.getActiveFile();
+				if (!activeFile) {
+					new Notice("Command must be used within an active opened file");
+					return;
+				}
+				const suggestModal = new FMSuggestModal(this.app, activeFile);
+				suggestModal.open();
+			}
+		});
 	}
 
 	registerEvents() {
@@ -89,6 +104,7 @@ export default class NoteDefinition extends Plugin {
 			if (!leaf) return;
 			this.reloadUpdatedDefinitions();
 			this.updateEditorExts();
+			this.defManager.updateActiveFile();
 		}));
 
 		this.registerEvent(this.app.workspace.on("editor-menu", (menu, editor) => {

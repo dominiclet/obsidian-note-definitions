@@ -31,6 +31,14 @@ export class FileParser {
 		if (!fileContent) {
 			fileContent = await this.vault.cachedRead(this.file)
 		}
+
+		// Ignore frontmatter (properties)
+		const fileMetadata = this.app.metadataCache.getFileCache(this.file);
+		const fmPos = fileMetadata?.frontmatterPosition;
+		if (fmPos) {
+			fileContent = fileContent.slice(fmPos.end.offset+1);
+		}
+
 		const lines = fileContent.split('\n');
 		this.currLine = -1;
 

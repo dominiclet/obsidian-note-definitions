@@ -24,6 +24,7 @@ You may want to assign hotkeys to the commands available for easy access:
 - Preview definition (show definition popover)
 - Go to definition (jump to definition of word/phrase)
 - Add definition
+- Add definition context (see [Definition context](#definition-context))
 
 ## How it works
 
@@ -69,6 +70,47 @@ Example definition file:
 > # Markdown support
 > 
 > Markdown is supported so you can do things like including *italics* or **bold** words.
+
+## Definition context
+> _TLDR:_ "Context" is synonymous with a definition file. By specifying a context, you specify that you want to use specific definition file(s) to source your definitions for the current note.
+
+Definition context refers to the repository of definitions that are available for the currently active note.
+By default, all notes have no context (you can think of this as being globally-scoped).
+This means that your newly-created notes will always have access to the combination of all definitions defined in your definition files.
+
+This behaviour can be overridden by specifying the "context" of your note.
+Each definition file that you have is taken to be a separate context (hence your definitions should be structured accordingly).
+Once context(s) are declared for a note, it will only retrieve definitions from the specified contexts.
+You can think of this as having a local scope for the note.
+The note now sees only a limited subset of all your definitions.
+
+### Usage
+
+To easily add context to your note:
+1. Use the `Add definition context` command
+2. Search and select your desired context
+
+You can do this multiple times to add multiple contexts.
+
+### How it works
+
+`Add definition context` adds to the _properties_ of your note.
+Specifically, it adds to the `def-context` property, which is a `List` type containing a list of file paths corresponding to the selected definition files.
+In source, it will look something like this:
+```
+---
+def-context:
+	- definitions/def1.md
+	- definitions/def2.md
+---
+```
+
+You can edit your properties directly, although for convenience, it is recommended to use the `Add definition context` command to add contexts as it is easy to get file paths wrong.
+
+### Removing contexts
+
+To remove contexts, simply remove the file path from the `def-context` property.
+Or if you want to remove all contexts, you can delete the `def-context` property altogether.
 
 ## Feedback
 

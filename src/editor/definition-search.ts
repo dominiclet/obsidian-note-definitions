@@ -21,7 +21,7 @@ export class LineScanner {
 		for (let i = 0; i < line.length; i++) {
 			const c = line.charAt(i).toLowerCase();
 			if (this.isValidStart(line, i)) {
-				traversers.push(new PTreeTraverser(defManager.prefixTree));
+				traversers.push(new PTreeTraverser(defManager.getPrefixTree()));
 			}
 
 			traversers.forEach(traverser => {
