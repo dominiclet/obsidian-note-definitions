@@ -92,6 +92,7 @@ export class DefinitionPopover extends Component {
 	}
 
 	private createElement(def: Definition, parent: HTMLElement): HTMLDivElement {
+		const popoverSettings = getSettings().defPopoverConfig;
 		const el = parent.createEl("div", {
 			cls: "definition-popover",
 			attr: {
@@ -101,7 +102,7 @@ export class DefinitionPopover extends Component {
 		});
 
 		el.createEl("h2", { text: def.word });
-		if (def.aliases.length > 0) {
+		if (def.aliases.length > 0 && popoverSettings.displayAliases) {
 			el.createEl("i", { text: def.aliases.join(", ") });
 		}
 		const contentEl = el.createEl("div");
@@ -112,7 +113,6 @@ export class DefinitionPopover extends Component {
 			normalizePath(def.file.path), currComponent);
 		this.postprocessMarkdown(contentEl, def);
 
-		const popoverSettings = getSettings().defPopoverConfig;
 		if (popoverSettings.displayDefFileName) {
 			el.createEl("div", {
 				text: def.file.basename,

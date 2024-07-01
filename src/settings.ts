@@ -16,6 +16,7 @@ export interface DefFileParseConfig {
 }
 
 export interface DefinitionPopoverConfig {
+	displayAliases: boolean;
 	displayDefFileName: boolean;
 }
 
@@ -39,6 +40,7 @@ export const DEFAULT_SETTINGS: Partial<Settings> = {
 		}
 	},
 	defPopoverConfig: {
+		displayAliases: true,
 		displayDefFileName: false
 	}
 }
@@ -145,7 +147,19 @@ export class SettingsTab extends PluginSettingTab {
 			});
 
 		new Setting(containerEl)
-			.setName("Display source definition file")
+			.setName("Display aliases")
+			.setDesc("Display the list of aliases configured for the definition")
+			.addToggle(component => {
+				component.setValue(this.settings.defPopoverConfig.displayAliases);
+				component.onChange(async value => {
+					this.settings.defPopoverConfig.displayAliases = value;
+					await this.plugin.saveSettings();
+				});
+			});
+		
+
+		new Setting(containerEl)
+			.setName("Display definition source file")
 			.setDesc("Display the title of the definition's source file")
 			.addToggle(component => {
 				component.setValue(this.settings.defPopoverConfig.displayDefFileName);
