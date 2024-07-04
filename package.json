@@ -1,6 +1,6 @@
 {
 	"name": "obsidian-note-definitions",
-	"version": "0.18.0",
+	"version": "0.18.1",
 	"description": "Personal dictionary for your notes",
 	"main": "main.js",
 	"scripts": {

@@ -148,6 +148,15 @@ export default class NoteDefinition extends Plugin {
 				});
 			}
 		}));
+
+		// Creating files under def folder should register file as definition file
+		this.registerEvent(this.app.vault.on('create', (file) => {
+			const settings = getSettings();
+			if (file.path.startsWith(settings.defFolder)) {
+				this.fileExplorerDeco.run();
+				this.refreshDefinitions();
+			}
+		}));
 	}
 
 	registerMenuForMarkedWords(menu: Menu, def: Definition) {
