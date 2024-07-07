@@ -91,6 +91,7 @@ export class DefinitionPopover extends Component {
 		return verticalOffset > parseInt(containerStyle.height) / 2;
 	}
 
+	// Creates popover element and its children, without displaying it 
 	private createElement(def: Definition, parent: HTMLElement): HTMLDivElement {
 		const popoverSettings = getSettings().defPopoverConfig;
 		const el = parent.createEl("div", {
@@ -174,6 +175,15 @@ export class DefinitionPopover extends Component {
 		}
 
 		this.mountedPopover = this.createElement(def, mdView.containerEl);
+		this.positionAndSizePopover(mdView, coords);
+	}
+
+	// Position and display popover
+	private positionAndSizePopover(mdView: MarkdownView, coords: Coordinates) {
+		if (!this.mountedPopover) {
+			return;
+		}
+		const popoverSettings = getSettings().defPopoverConfig;
 		const containerStyle = getComputedStyle(mdView.containerEl);
 		const matchedClasses = mdView.containerEl.getElementsByClassName("view-header");
 		// The container div has a header element that needs to be accounted for
@@ -189,7 +199,8 @@ export class DefinitionPopover extends Component {
 			visibility: 'visible',
 		};
 
-		positionStyle.maxWidth = `${parseInt(containerStyle.width) / 2}px`;
+		positionStyle.maxWidth = popoverSettings.enableCustomSize && popoverSettings.maxWidth ? 
+			`${popoverSettings.maxWidth}px` : `${parseInt(containerStyle.width) / 2}px`;
 		if (this.shouldOpenToLeft(coords.left, containerStyle)) {
 			positionStyle.right = `${parseInt(containerStyle.width) - coords.right}px`;
 		} else {
@@ -198,10 +209,12 @@ export class DefinitionPopover extends Component {
 
 		if (this.shouldOpenUpwards(coords.top, containerStyle)) {
 			positionStyle.bottom = `${parseInt(containerStyle.height) - coords.top}px`;
-			positionStyle.maxHeight = `${coords.top - offsetHeaderHeight}px`;
+			positionStyle.maxHeight = popoverSettings.enableCustomSize && popoverSettings.maxHeight ? 
+				`${popoverSettings.maxHeight}px` : `${coords.top - offsetHeaderHeight}px`;
 		} else {
 			positionStyle.top = `${coords.bottom}px`;
-			positionStyle.maxHeight = `${parseInt(containerStyle.height) - coords.bottom}px`;
+			positionStyle.maxHeight = popoverSettings.enableCustomSize && popoverSettings.maxHeight ?
+				`${popoverSettings.maxHeight}px` : `${parseInt(containerStyle.height) - coords.bottom}px`;
 		}
 
 		this.mountedPopover.setCssStyles(positionStyle);

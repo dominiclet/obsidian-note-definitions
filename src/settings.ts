@@ -18,6 +18,9 @@ export interface DefFileParseConfig {
 export interface DefinitionPopoverConfig {
 	displayAliases: boolean;
 	displayDefFileName: boolean;
+	enableCustomSize: boolean;
+	maxWidth: number;
+	maxHeight: number;
 }
 
 export interface Settings {
@@ -41,7 +44,10 @@ export const DEFAULT_SETTINGS: Partial<Settings> = {
 	},
 	defPopoverConfig: {
 		displayAliases: true,
-		displayDefFileName: false
+		displayDefFileName: false,
+		enableCustomSize: false,
+		maxWidth: 150,
+		maxHeight: 150
 	}
 }
 
@@ -168,6 +174,46 @@ export class SettingsTab extends PluginSettingTab {
 					await this.plugin.saveSettings();
 				});
 			});
+
+		new Setting(containerEl)
+			.setName("Custom popover size")
+			.setDesc("Customise the maximum popover size. This is not recommended as it prevents dynamic sizing of the popover based on your viewport.")
+			.addToggle(component => {
+				component.setValue(this.settings.defPopoverConfig.enableCustomSize);
+				component.onChange(async value => {
+					this.settings.defPopoverConfig.enableCustomSize = value;
+					await this.plugin.saveSettings();
+					this.display();
+				});
+			});
+
+		if (this.settings.defPopoverConfig.enableCustomSize) {
+			new Setting(containerEl)
+				.setName("Popover width (px)")
+				.setDesc("Maximum width of the definition popover")
+				.addSlider(component => {
+					component.setLimits(150, window.innerWidth, 1);
+					component.setValue(this.settings.defPopoverConfig.maxWidth);
+					component.setDynamicTooltip()
+					component.onChange(async val => {
+						this.settings.defPopoverConfig.maxWidth = val;
+						await this.plugin.saveSettings();
+					});
+				});
+
+			new Setting(containerEl)
+				.setName("Popover height (px)")
+				.setDesc("Maximum height of the definition popover")
+				.addSlider(component => {
+					component.setLimits(150, window.innerHeight, 1);
+					component.setValue(this.settings.defPopoverConfig.maxHeight);
+					component.setDynamicTooltip();
+					component.onChange(async val => {
+						this.settings.defPopoverConfig.maxHeight = val;
+						await this.plugin.saveSettings();
+					});
+				});
+		}
 	}
 }
 
