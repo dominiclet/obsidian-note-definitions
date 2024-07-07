@@ -1,9 +1,8 @@
 import { Platform } from "obsidian";
 import { DefinitionRepo, getDefFileManager } from "./core/def-file-manager";
-import { Definition } from "./core/model";
 import { getDefinitionPopover } from "./editor/definition-popover";
 import { getDefinitionModal } from "./editor/mobile/definition-modal";
-import { Settings } from "./settings";
+import { getSettings, PopoverDismissType, Settings } from "./settings";
 import { LogLevel } from "./util/log";
 
 export {}
@@ -47,11 +46,15 @@ export function injectGlobals(settings: Settings) {
 			if (el.onmouseenter) {
 				const openPopover = setTimeout(() => {
 					defPopover.openAtCoords(def, el.getBoundingClientRect());
+					isOpen = true;
 				}, 200);
 
 				el.onmouseleave = () => {
+					const popoverSettings = getSettings().defPopoverConfig;
 					if (!isOpen) {
 						clearTimeout(openPopover);
+					} else if (popoverSettings.popoverDismissEvent === PopoverDismissType.MouseExit) {
+						defPopover.clickClose();
 					}
 				}
 				return;

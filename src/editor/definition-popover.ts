@@ -1,6 +1,6 @@
 import { App, Component, MarkdownRenderer, MarkdownView, normalizePath, Plugin } from "obsidian";
 import { Definition } from "src/core/model";
-import { getSettings } from "src/settings";
+import { getSettings, PopoverDismissType } from "src/settings";
 import { logDebug, logError } from "src/util/log";
 
 const DEF_POPOVER_ID = "definition-popover";
@@ -242,6 +242,14 @@ export class DefinitionPopover extends Component {
 	private registerClosePopoverListeners() {
 		this.app.workspace.containerEl.addEventListener("keypress", this.close);
 		this.app.workspace.containerEl.addEventListener("click", this.clickClose);
+		if (this.mountedPopover) {
+			this.mountedPopover.addEventListener("mouseleave", () => {
+				const popoverSettings = getSettings().defPopoverConfig;
+				if (popoverSettings.popoverDismissEvent === PopoverDismissType.MouseExit) {
+					this.clickClose();
+				}
+			});
+		}
 		if (this.cmEditor) {
 			this.cmEditor.on("vim-keypress", this.close);
 		}

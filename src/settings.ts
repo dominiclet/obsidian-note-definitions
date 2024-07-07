@@ -6,6 +6,11 @@ export enum PopoverEventSettings {
 	Click = "click"
 }
 
+export enum PopoverDismissType {
+	Click = "click",
+	MouseExit = "mouse_exit"
+}
+
 export interface DividerSettings {
 	dash: boolean;
 	underscore: boolean;
@@ -21,6 +26,7 @@ export interface DefinitionPopoverConfig {
 	enableCustomSize: boolean;
 	maxWidth: number;
 	maxHeight: number;
+	popoverDismissEvent: PopoverDismissType;
 }
 
 export interface Settings {
@@ -47,7 +53,8 @@ export const DEFAULT_SETTINGS: Partial<Settings> = {
 		displayDefFileName: false,
 		enableCustomSize: false,
 		maxWidth: 150,
-		maxHeight: 150
+		maxHeight: 150,
+		popoverDismissEvent: PopoverDismissType.Click,
 	}
 }
 
@@ -148,9 +155,34 @@ export class SettingsTab extends PluginSettingTab {
 					if (value === PopoverEventSettings.Hover || value === PopoverEventSettings.Click) {
 						this.settings.popoverEvent = value;
 					}
+					if (this.settings.popoverEvent === PopoverEventSettings.Click) {
+						this.settings.defPopoverConfig.popoverDismissEvent = PopoverDismissType.Click;
+					}
 					await this.plugin.saveSettings();
+					this.display();
 				});
 			});
+
+		if (this.settings.popoverEvent === PopoverEventSettings.Hover) {
+			new Setting(containerEl)
+				.setName("Definition popover dismiss event")
+				.setDesc("Configure the manner in which you would like to close/dismiss the definition popover.")
+				.addDropdown(component => {
+					component.addOption(PopoverDismissType.Click, "Click");
+					component.addOption(PopoverDismissType.MouseExit, "Mouse exit")
+					if (!this.settings.defPopoverConfig.popoverDismissEvent) {
+						this.settings.defPopoverConfig.popoverDismissEvent = PopoverDismissType.Click;
+						this.plugin.saveSettings();
+					}
+					component.setValue(this.settings.defPopoverConfig.popoverDismissEvent);
+					component.onChange(async value => {
+						if (value === PopoverDismissType.MouseExit || value === PopoverDismissType.Click) {
+							this.settings.defPopoverConfig.popoverDismissEvent = value;
+						}
+						await this.plugin.saveSettings();
+					});
+				});
+		}
 
 		new Setting(containerEl)
 			.setName("Display aliases")
