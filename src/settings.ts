@@ -27,6 +27,7 @@ export interface DefinitionPopoverConfig {
 	maxWidth: number;
 	maxHeight: number;
 	popoverDismissEvent: PopoverDismissType;
+	enableDefinitionLink: boolean;
 }
 
 export interface Settings {
@@ -55,6 +56,7 @@ export const DEFAULT_SETTINGS: Partial<Settings> = {
 		maxWidth: 150,
 		maxHeight: 150,
 		popoverDismissEvent: PopoverDismissType.Click,
+		enableDefinitionLink: false,
 	}
 }
 
@@ -246,6 +248,17 @@ export class SettingsTab extends PluginSettingTab {
 					});
 				});
 		}
+
+		new Setting(containerEl)
+			.setName("Enable definition links")
+			.setDesc("Definitions within popovers will be marked and can be clicked to go to definition.")
+			.addToggle(component => {
+				component.setValue(this.settings.defPopoverConfig.enableDefinitionLink);
+				component.onChange(async val => {
+					this.settings.defPopoverConfig.enableDefinitionLink = val;
+					await this.plugin.saveSettings();
+				});
+			});
 	}
 }
 

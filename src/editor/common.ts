@@ -5,6 +5,7 @@ const triggerFunc = 'event.stopPropagation();window.NoteDefinition.triggerDefPre
 
 export const DEF_DECORATION_CLS = "def-decoration";
 
+// For normal decoration of definitions
 export function getDecorationAttrs(phrase: string): { [key: string]: string } {
 	let attributes: { [key: string]: string } = {
 		def: phrase,
@@ -21,3 +22,4 @@ export function getDecorationAttrs(phrase: string): { [key: string]: string } {
 	}
 	return attributes;
 }
+

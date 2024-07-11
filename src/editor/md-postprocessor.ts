@@ -1,6 +1,11 @@
-import { MarkdownPostProcessor } from "obsidian";
+import { getLinkpath, MarkdownPostProcessor } from "obsidian";
+import { getDefFileManager } from "src/core/def-file-manager";
+import { getSettings } from "src/settings";
 import { DEF_DECORATION_CLS, getDecorationAttrs } from "./common";
+import { getDefinitionPopover } from "./definition-popover";
 import { LineScanner, PhraseInfo } from "./definition-search";
+
+const DEF_LINK_DECOR_CLS = "def-link-decoration";
 
 interface Marks {
 	el: HTMLElement;
@@ -13,15 +18,18 @@ export const postProcessor: MarkdownPostProcessor = (element, context) => {
 		return;
 	}
 
+	const popoverSettings = getSettings().defPopoverConfig;
+
 	// Prevent post-processing for definition popover
-	if (element.getAttr("ctx") === "def-popup") {
+	const isPopupCtx = element.getAttr("ctx") === "def-popup";
+	if (isPopupCtx && !popoverSettings.enableDefinitionLink) {
 		return;
 	}
 
-	rebuildHTML(element);
+	rebuildHTML(element, isPopupCtx);
 }
 
-const rebuildHTML = (parent: Node) => {
+const rebuildHTML = (parent: Node, isPopupCtx: boolean) => {
 	for (let i = 0; i < parent.childNodes.length; i++) {
 		const childNode = parent.childNodes[i];
 		// Replace only if TEXT_NODE
@@ -46,6 +54,8 @@ const rebuildHTML = (parent: Node) => {
 			const newContainer = parent.createSpan();
 			const addedMarks: Marks[] = [];
 
+			const popoverSettings = getSettings().defPopoverConfig;
+
 			phraseInfos.forEach(phraseInfo => {
 				if (phraseInfo.from < currCursor) {
 					// Subset or intersect phrases are ignored
@@ -53,12 +63,14 @@ const rebuildHTML = (parent: Node) => {
 				}
 
 				newContainer.appendText(currText.slice(currCursor, phraseInfo.from));
-				const attributes = getDecorationAttrs(phraseInfo.phrase);
-				const span = newContainer.createSpan({
-					cls: DEF_DECORATION_CLS,
-					attr: attributes,
-					text: currText.slice(phraseInfo.from, phraseInfo.to),
-				});
+
+				let span: HTMLSpanElement;
+				if (isPopupCtx && popoverSettings.enableDefinitionLink) {
+					span = getLinkDecorationSpan(newContainer, phraseInfo, currText);
+				} else {
+					span = getNormalDecorationSpan(newContainer, phraseInfo, currText);
+				}
+
 				newContainer.appendChild(span);
 				addedMarks.push({
 					el: span,
@@ -71,7 +83,37 @@ const rebuildHTML = (parent: Node) => {
 			childNode.replaceWith(newContainer);
 		}
 
-		rebuildHTML(childNode);
+		rebuildHTML(childNode, isPopupCtx);
 	}
 }
 
+function getNormalDecorationSpan(container: HTMLElement, phraseInfo: PhraseInfo, currText: string): HTMLSpanElement {
+	const attributes = getDecorationAttrs(phraseInfo.phrase);
+	const span = container.createSpan({
+		cls: DEF_DECORATION_CLS,
+		attr: attributes,
+		text: currText.slice(phraseInfo.from, phraseInfo.to),
+	});
+	return span;
+}
+
+function getLinkDecorationSpan(container: HTMLElement, phraseInfo: PhraseInfo, currText: string): HTMLSpanElement {
+	const span = container.createSpan({
+		cls: DEF_LINK_DECOR_CLS,
+		text: currText.slice(phraseInfo.from, phraseInfo.to),
+	});
+	span.addEventListener("click", (e) => {
+		const app = window.NoteDefinition.app;
+		const def = getDefFileManager().get(phraseInfo.phrase);
+		if (!def) {
+			return;
+		}
+		app.workspace.openLinkText(def.linkText, '');
+		// Close definition popover
+		const popover = getDefinitionPopover();
+		if (popover) {
+			popover.close();
+		}
+	});
+	return span;
+}

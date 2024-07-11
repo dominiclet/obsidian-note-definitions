@@ -23,7 +23,7 @@ export default class NoteDefinition extends Plugin {
 	async onload() {
 		// Settings are injected into global object
 		const settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData())
-		injectGlobals(settings);
+		injectGlobals(settings, this.app);
 
 		logDebug("Load note definition plugin");
 

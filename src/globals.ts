@@ -1,4 +1,4 @@
-import { Platform } from "obsidian";
+import { App, Platform } from "obsidian";
 import { DefinitionRepo, getDefFileManager } from "./core/def-file-manager";
 import { getDefinitionPopover } from "./editor/definition-popover";
 import { getDefinitionModal } from "./editor/mobile/definition-modal";
@@ -18,11 +18,13 @@ export interface GlobalVars {
 	};
 	triggerDefPreview: (el: HTMLElement) => void;
 	settings: Settings;
+	app: App;
 }
 
 // Initialise and inject globals
-export function injectGlobals(settings: Settings) {
+export function injectGlobals(settings: Settings, app: App) {
 	window.NoteDefinition = {
+		app: app,
 		LOG_LEVEL: window.NoteDefinition?.LOG_LEVEL || LogLevel.Error,
 		definitions: {
 			global: new DefinitionRepo(),
