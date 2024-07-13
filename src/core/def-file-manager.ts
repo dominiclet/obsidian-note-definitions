@@ -14,6 +14,7 @@ export const DEF_CTX_FM_KEY = "def-context";
 export class DefManager {
 	app: App;
 	globalDefs: DefinitionRepo;
+	globalDefFolders: Map<string, TFolder>;
 	globalDefFiles: Map<string, TFile>;
 	globalPrefixTree: PTreeNode;
 	lastUpdate: number;
@@ -26,6 +27,7 @@ export class DefManager {
 		this.app = app;
 		this.globalDefs = new DefinitionRepo();
 		this.globalDefFiles = new Map<string, TFile>();
+		this.globalDefFolders = new Map<string, TFolder>();
 		this.globalPrefixTree = new PTreeNode();
 		this.resetLocalConfigs()
 		this.lastUpdate = 0;
@@ -52,16 +54,17 @@ export class DefManager {
 			if (!metadataCache) {
 				return;
 			}
-			const fmCache = metadataCache.frontmatter?.[DEF_CTX_FM_KEY];
-			if (!fmCache) {
+			const paths = metadataCache.frontmatter?.[DEF_CTX_FM_KEY];
+			if (!paths) {
 				// No def-source specified
 				return;
 			}
-			if (!Array.isArray(fmCache)) {
+			if (!Array.isArray(paths)) {
 				logWarn("Unrecognised type for 'def-source' frontmatter");
 				return;
 			}
-			this.buildLocalPrefixTree(fmCache);
+			const flattenedPaths = this.flattenPathList(paths);
+			this.buildLocalPrefixTree(flattenedPaths);
 			this.shouldUseLocalPTree = true;
 		}
 	}
@@ -73,9 +76,51 @@ export class DefManager {
 		this.shouldUseLocalPTree = true;
 	}
 
-	private buildLocalPrefixTree(fmCache: string[]) {
+	private flattenPathList(paths: string[]): string[] {
+		const filePaths: string[] = [];
+		paths.forEach(path => {
+			if (this.isFolderPath(path)) {
+				filePaths.push(...this.flattenFolder(path));
+			} else {
+				filePaths.push(path);
+			}
+		})
+		return filePaths;
+	}
+
+	// Given a folder path, return an array of file paths
+	private flattenFolder(path: string): string[] {
+		if (path.endsWith("/")) {
+			path = path.slice(0, path.length - 1);
+		}
+		const folder = this.app.vault.getFolderByPath(path)
+		if (!folder) {
+			return [];
+		}
+		const childrenFiles = this.getChildrenFiles(folder);
+		return childrenFiles.map(file => file.path);
+	}
+
+	private getChildrenFiles(folder: TFolder): TFile[] {
+		const files: TFile[] = [];
+		folder.children.forEach(abstractFile => {
+			if (abstractFile instanceof TFolder) {
+				files.push(...this.getChildrenFiles(abstractFile));
+			} else if (abstractFile instanceof TFile) {
+				files.push(abstractFile);
+			}
+		})
+		return files;
+	}
+
+	private isFolderPath(path: string): boolean {
+		return path.endsWith("/");
+	}
+
+	// Expects an array of file paths (not directories)
+	private buildLocalPrefixTree(filePaths: string[]) {
 		const root = new PTreeNode();
-		fmCache.forEach(filePath => {
+		filePaths.forEach(filePath => {
 			const defMap = this.globalDefs.getMapForFile(filePath);
 			if (!defMap) {
 				logWarn(`Unrecognised file path '${filePath}'`)
@@ -98,6 +143,9 @@ export class DefManager {
 		this.globalDefFiles = new Map<string, TFile>();
 	}
 
+	// Load all definitions from registered def folder
+	// This will recurse through the def folder, parsing all definition files
+	// Expensive operation so use sparingly
 	loadDefinitions() {
 		this.reset();
 		this.loadGlobals();
@@ -108,7 +156,11 @@ export class DefManager {
 	}
 
 	getDefFiles(): TFile[] {
-		return [...this.globalDefFiles.values()]
+		return [...this.globalDefFiles.values()];
+	}
+
+	getDefFolders(): TFolder[] {
+		return [...this.globalDefFolders.values()];
 	}
 
 	async loadUpdatedFiles() {
@@ -137,6 +189,7 @@ export class DefManager {
 		this.lastUpdate = Date.now();
 	}
 
+	// Global configs should always be used by default
 	private resetLocalConfigs() {
 		this.localPrefixTree = new PTreeNode();
 		this.shouldUseLocalPTree = false;
@@ -177,6 +230,7 @@ export class DefManager {
 	}
 
 	private async parseFolder(folder: TFolder): Promise<Definition[]> {
+		this.globalDefFolders.set(folder.path, folder);
 		const definitions: Definition[] = [];
 		for (let f of folder.children) {
 			if (f instanceof TFolder) {

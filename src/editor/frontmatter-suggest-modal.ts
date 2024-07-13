@@ -1,9 +1,9 @@
-import { App, FuzzySuggestModal, Notice, TFile } from "obsidian";
+import { App, FuzzySuggestModal, Notice, TAbstractFile, TFile, TFolder } from "obsidian";
 import { DEF_CTX_FM_KEY, getDefFileManager } from "src/core/def-file-manager";
 import { logError } from "src/util/log";
 
 
-export class FMSuggestModal extends FuzzySuggestModal<TFile> {
+export class FMSuggestModal extends FuzzySuggestModal<TAbstractFile> {
 	file: TFile;
 
 	constructor(app: App, currFile: TFile) {
@@ -11,33 +11,41 @@ export class FMSuggestModal extends FuzzySuggestModal<TFile> {
 		this.file = currFile;
 	}
 
-	getItems(): TFile[] {
+	getItems(): TAbstractFile[] {
 		const defManager = getDefFileManager();
-		return defManager.getDefFiles();
+		return [...defManager.getDefFiles(), ...defManager.getDefFolders()];
 	}
 
-	getItemText(item: TFile): string {
-		return item.basename;
+	getItemText(item: TAbstractFile): string {
+		return this.getPath(item);
 	}
 
-	onChooseItem(item: TFile, evt: MouseEvent | KeyboardEvent) {
+	onChooseItem(item: TAbstractFile, evt: MouseEvent | KeyboardEvent) {
+		const path = this.getPath(item);
 		this.app.fileManager.processFrontMatter(this.file, (fm) => {
 			let currDefSource = fm[DEF_CTX_FM_KEY];
 			if (!currDefSource || !Array.isArray(currDefSource)) {
-				fm[DEF_CTX_FM_KEY] = [item.path];
+				fm[DEF_CTX_FM_KEY] = [path];
 				return;
 			}
 			// Check if file is already added
-			if (currDefSource.includes(item.path)) {
+			if (currDefSource.includes(path)) {
 				new Notice("Definition file source is already included for this file");
 				return;
 			}
-			fm[DEF_CTX_FM_KEY] = [...currDefSource, item.path];
+			fm[DEF_CTX_FM_KEY] = [...currDefSource, path];
 
 			// Reload internals
-			getDefFileManager().updateDefSources([...currDefSource, item.path]);
+			getDefFileManager().updateDefSources([...currDefSource, path]);
 		}).catch(e => {
 			logError(`Error writing to frontmatter of file: ${e}`);
 		});
+	}
+
+	private getPath(file: TAbstractFile): string {
+		if (file instanceof TFolder) {
+			return file.path + "/";
+		}
+		return file.path;
 	}
 }
