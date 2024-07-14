@@ -26,10 +26,13 @@ export class DefFileUpdater {
 			logError("File definition not found, cannot edit");
 			return;
 		}
-		const newLines = this.replaceDefinition(fileDef.position, def, lines);
-		const newContent = newLines.join("\n");
+		// TODO: Handle atomic def file update
+		if (fileDef.position) {
+			const newLines = this.replaceDefinition(fileDef.position, def, lines);
+			const newContent = newLines.join("\n");
 
-		await this.app.vault.modify(file, newContent);
+			await this.app.vault.modify(file, newContent);
+		}
 		await getDefFileManager().loadUpdatedFiles();
 		new Notice("Definition successfully modified");
 	}

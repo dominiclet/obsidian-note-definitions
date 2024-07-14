@@ -7,7 +7,7 @@ export interface Definition {
 	definition: string;
 	file: TFile;
 	linkText: string;
-	position: FilePosition;
+	position?: FilePosition;
 }
 
 export interface FilePosition {
