@@ -1,5 +1,6 @@
 import { App, TFile } from "obsidian";
 import { DefFileParseConfig, getSettings } from "src/settings";
+import { DefFileType } from "./file-parser";
 import { Definition, FilePosition } from "./model";
 
 
@@ -91,6 +92,7 @@ export class ConsolidatedDefParser {
 			definition: this.defBuffer.definition ?? "",
 			file: this.file,
 			linkText: `${this.file.path}${this.defBuffer.word ? '#'+this.defBuffer.word : ''}`,
+			fileType: DefFileType.Consolidated,
 			position: {
 				from: this.defBuffer.filePosition?.from ?? 0, 
 				to: this.currLine-1,
@@ -106,6 +108,7 @@ export class ConsolidatedDefParser {
 					definition: this.defBuffer.definition ?? "",
 					file: this.file,
 					linkText: `${this.file.path}${this.defBuffer.word ? '#'+this.defBuffer.word : ''}`,
+					fileType: DefFileType.Consolidated,
 					position: {
 						from: this.defBuffer.filePosition?.from ?? 0, 
 						to: this.currLine-1,

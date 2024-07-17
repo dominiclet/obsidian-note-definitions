@@ -1,4 +1,5 @@
 import { TFile } from "obsidian";
+import { DefFileType } from "./file-parser";
 
 export interface Definition {
 	key: string;
@@ -7,6 +8,7 @@ export interface Definition {
 	definition: string;
 	file: TFile;
 	linkText: string;
+	fileType: DefFileType;
 	position?: FilePosition;
 }
 

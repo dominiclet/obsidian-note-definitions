@@ -1,6 +1,7 @@
 import { App, DropdownComponent, Modal, Notice, Setting } from "obsidian";
 import { getDefFileManager } from "src/core/def-file-manager";
 import { DefFileUpdater } from "src/core/def-file-updater";
+import { DefFileType } from "src/core/file-parser";
 
 
 export class AddDefinitionModal {
@@ -9,6 +10,13 @@ export class AddDefinitionModal {
 	aliases: string;
 	definition: string;
 	submitting: boolean;
+
+	fileTypePicker: DropdownComponent;
+	defFilePickerSetting: Setting;
+	defFilePicker: DropdownComponent;
+
+	atomicFolderPickerSetting: Setting;
+	atomicFolderPicker: DropdownComponent;
 
 	constructor(app: App) {
 		this.app = app;
@@ -50,17 +58,44 @@ export class AddDefinitionModal {
 			},
 		});
 
-		const defManager = getDefFileManager();
-		let defFileSettings: DropdownComponent;
 		new Setting(this.modal.contentEl)
+			.setName("Definition file type")
+			.addDropdown(component => {
+				component.addOption(DefFileType.Consolidated, "Consolidated");
+				component.addOption(DefFileType.Atomic, "Atomic");
+				component.onChange(val => {
+					if (val === DefFileType.Consolidated) {
+						this.atomicFolderPickerSetting.settingEl.hide();
+						this.defFilePickerSetting.settingEl.show();
+					} else if (val === DefFileType.Atomic) {
+						this.defFilePickerSetting.settingEl.hide();
+						this.atomicFolderPickerSetting.settingEl.show();
+					}
+				});
+				this.fileTypePicker = component;
+			});
+
+		const defManager = getDefFileManager();
+		this.defFilePickerSetting = new Setting(this.modal.contentEl)
 			.setName("Definition file")
 			.addDropdown(component => {
-				const defFiles = defManager.globalDefFiles;
-				[...defFiles.keys()].forEach(file => {
-					component.addOption(file, file);
+				const defFiles = defManager.getConsolidatedDefFiles();
+				defFiles.forEach(file => {
+					component.addOption(file.path, file.path);
 				});
-				defFileSettings = component;
+				this.defFilePicker = component;
 			});
+
+		this.atomicFolderPickerSetting = new Setting(this.modal.contentEl)
+			.setName("Add file to folder")
+			.addDropdown(component => {
+				const defFolders = defManager.getDefFolders();
+				defFolders.forEach(folder => {
+					component.addOption(folder.path, folder.path + "/");
+				});
+				this.atomicFolderPicker = component;
+			});
+		this.atomicFolderPickerSetting.settingEl.hide();
 
 		const button = this.modal.contentEl.createEl("button", {
 			text: "Save",
@@ -74,20 +109,22 @@ export class AddDefinitionModal {
 				new Notice("Please fill in a definition value");
 				return;
 			}
-			if (!defFileSettings.getValue()) {
+			if (!this.defFilePicker.getValue()) {
 				new Notice("Please choose a definition file. If you do not have any definition files, please create one.")
 				return;
 			}
 			const defFileManager = getDefFileManager();
-			const definitionFile = defFileManager.globalDefFiles.get(defFileSettings.getValue());
+			const definitionFile = defFileManager.globalDefFiles.get(this.defFilePicker.getValue());
 			const updated = new DefFileUpdater(this.app);
+			const fileType = this.fileTypePicker.getValue();
 			updated.addDefinition({
-				key: phraseText.value,
+				fileType: fileType as DefFileType,
+				key: phraseText.value.toLowerCase(),
 				word: phraseText.value,
 				aliases: aliasText.value? aliasText.value.split(",").map(alias => alias.trim()) : [],
 				definition: defText.value,
 				file: definitionFile,
-			});
+			}, this.atomicFolderPicker.getValue());
 			this.modal.close();
 		});
 

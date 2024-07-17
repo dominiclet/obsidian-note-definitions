@@ -1,4 +1,5 @@
 import { App, TFile } from "obsidian";
+import { DefFileType } from "./file-parser";
 import { Definition } from "./model";
 
 
@@ -29,6 +30,7 @@ export class AtomicDefParser {
 			definition: fileContent,
 			file: this.file,
 			linkText: `${this.file.path}`,
+			fileType: DefFileType.Atomic,
 		}
 		return [def];
 	}

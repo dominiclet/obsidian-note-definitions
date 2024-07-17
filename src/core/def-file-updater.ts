@@ -1,8 +1,10 @@
-import { App, Notice } from "obsidian";
+import { App, Notice, TFile } from "obsidian";
+import { getDefinitionModal } from "src/editor/mobile/definition-modal";
 import { getSettings } from "src/settings";
-import { logError } from "src/util/log";
+import { logError, logWarn } from "src/util/log";
 import { getDefFileManager } from "./def-file-manager";
-import { FileParser } from "./file-parser";
+import { DefFileType, FileParser } from "./file-parser";
+import { FrontmatterBuilder } from "./fm-builder";
 import { Definition, FilePosition } from "./model";
 
 
@@ -14,6 +16,22 @@ export class DefFileUpdater {
 	}
 
 	async updateDefinition(def: Definition) {
+		if (def.fileType === DefFileType.Atomic) {
+			await this.updateAtomicDefFile(def);
+		} else if (def.fileType === DefFileType.Consolidated) {
+			await this.updateConsolidatedDefFile(def);
+		} else {
+			return;
+		}
+		await getDefFileManager().loadUpdatedFiles();
+		new Notice("Definition successfully modified");
+	}
+
+	private async updateAtomicDefFile(def: Definition) {
+		await this.app.vault.modify(def.file, def.definition);
+	}
+
+	private async updateConsolidatedDefFile(def: Definition) {
 		const file = def.file;
 		const fileContent = await this.app.vault.read(file);
 
@@ -26,18 +44,46 @@ export class DefFileUpdater {
 			logError("File definition not found, cannot edit");
 			return;
 		}
-		// TODO: Handle atomic def file update
 		if (fileDef.position) {
 			const newLines = this.replaceDefinition(fileDef.position, def, lines);
 			const newContent = newLines.join("\n");
 
 			await this.app.vault.modify(file, newContent);
 		}
-		await getDefFileManager().loadUpdatedFiles();
-		new Notice("Definition successfully modified");
 	}
 
-	async addDefinition(def: Partial<Definition>) {
+	async addDefinition(def: Partial<Definition>, folder?: string) {
+		if (!def.fileType) {
+			logError("File type missing");
+			return;
+		}
+		if (def.fileType === DefFileType.Consolidated) {
+			await this.addConsoldiatedFileDefinition(def);
+		} else if (def.fileType === DefFileType.Atomic) {
+			await this.addAtomicFileDefinition(def, folder);
+		}
+		await getDefFileManager().loadUpdatedFiles();
+		new Notice("Definition succesfully added");
+	}
+
+	private async addAtomicFileDefinition(def: Partial<Definition>, folder?: string) {
+		if (!folder) {
+			logError("Folder missing for atomic file add");
+			return;
+		}
+		if (!def.definition) {
+			logWarn("No definition given");
+			return;
+		}
+		const fmBuilder = new FrontmatterBuilder();
+		fmBuilder.add("def-type", "atomic");
+		const fm = fmBuilder.finish();
+		const file = await this.app.vault.create(`${folder}/${def.word}.md`, fm+def.definition);
+		getDefFileManager().addDefFile(file);
+		getDefFileManager().markDirty(file);
+	}
+
+	private async addConsoldiatedFileDefinition(def: Partial<Definition>) {
 		const file = def.file;
 		if (!file) {
 			logError("Add definition failed, no file given");
@@ -54,8 +100,6 @@ export class DefFileUpdater {
 		const newContent = newLines.join("\n");
 
 		await this.app.vault.modify(file, newContent);
-		await getDefFileManager().loadUpdatedFiles();
-		new Notice("Definition succesfully added");
 	}
 
 	private addSeparator(lines: string[]) {
