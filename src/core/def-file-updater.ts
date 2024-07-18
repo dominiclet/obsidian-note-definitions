@@ -1,5 +1,4 @@
-import { App, Notice, TFile } from "obsidian";
-import { getDefinitionModal } from "src/editor/mobile/definition-modal";
+import { App, Notice } from "obsidian";
 import { getSettings } from "src/settings";
 import { logError, logWarn } from "src/util/log";
 import { getDefFileManager } from "./def-file-manager";

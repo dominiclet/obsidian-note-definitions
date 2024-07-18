@@ -1,4 +1,4 @@
-import { App, TFile } from "obsidian";
+import { App, CachedMetadata, TFile } from "obsidian";
 import { DefFileType } from "./file-parser";
 import { Definition } from "./model";
 
@@ -18,6 +18,14 @@ export class AtomicDefParser {
 		}
 
 		const fileMetadata = this.app.metadataCache.getFileCache(this.file);
+		let aliases = [];
+		const fmData = fileMetadata?.frontmatter;
+		if (fmData) {
+			const fmAlias = fmData["aliases"];
+			if (Array.isArray(fmAlias)) {
+				aliases = fmAlias;
+			}
+		}
 		const fmPos = fileMetadata?.frontmatterPosition;
 		if (fmPos) {
 			fileContent = fileContent.slice(fmPos.end.offset+1);
@@ -26,7 +34,7 @@ export class AtomicDefParser {
 		const def = {
 			key: this.file.basename.toLowerCase(),
 			word: this.file.basename,
-			aliases: [], // TODO
+			aliases: aliases,
 			definition: fileContent,
 			file: this.file,
 			linkText: `${this.file.path}`,

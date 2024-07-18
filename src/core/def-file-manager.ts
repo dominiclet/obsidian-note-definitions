@@ -325,6 +325,14 @@ export class DefinitionRepo {
 			return;
 		}
 		defMap.set(def.key, def);
+
+		if (def.aliases.length > 0) {
+			def.aliases.forEach(alias => {
+				if (defMap) {
+					defMap.set(alias.toLowerCase(), def);
+				}
+			});
+		}
 	}
 
 	clearForFile(filePath: string) {
