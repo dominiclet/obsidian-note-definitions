@@ -87,7 +87,7 @@ export default class NoteDefinition extends Plugin {
 		this.addCommand({
 			id: "add-def-context",
 			name: "Add definition context",
-			editorCallback: (editor) =>{
+			editorCallback: (editor) => {
 				const activeFile = this.app.workspace.getActiveFile();
 				if (!activeFile) {
 					new Notice("Command must be used within an active opened file");
@@ -95,6 +95,14 @@ export default class NoteDefinition extends Plugin {
 				}
 				const suggestModal = new FMSuggestModal(this.app, activeFile);
 				suggestModal.open();
+			}
+		});
+
+		this.addCommand({
+			id: "refresh-definitions",
+			name: "Refresh definitions",
+			callback: () => {
+				this.defManager.loadDefinitions();
 			}
 		});
 	}

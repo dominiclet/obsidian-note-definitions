@@ -76,8 +76,16 @@ export class DefFileUpdater {
 		}
 		const fmBuilder = new FrontmatterBuilder();
 		fmBuilder.add("def-type", "atomic");
+		if (def.aliases) {
+			const aliases: string[] = [];
+			def.aliases.forEach(alias => {
+				aliases.push(`- ${alias}`);
+			});
+			fmBuilder.add("aliases", "\n" + aliases.join("\n"));
+		}
 		const fm = fmBuilder.finish();
 		const file = await this.app.vault.create(`${folder}/${def.word}.md`, fm+def.definition);
+
 		getDefFileManager().addDefFile(file);
 		getDefFileManager().markDirty(file);
 	}
