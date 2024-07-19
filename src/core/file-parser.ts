@@ -4,7 +4,7 @@ import { AtomicDefParser } from "./atomic-def-parser";
 import { ConsolidatedDefParser } from "./consolidated-def-parser";
 import { Definition } from "./model";
 
-const DEF_TYPE_FM = "def-type";
+export const DEF_TYPE_FM = "def-type";
 
 export enum DefFileType {
 	Consolidated = "consolidated",
