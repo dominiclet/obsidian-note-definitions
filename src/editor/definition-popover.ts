@@ -98,7 +98,8 @@ export class DefinitionPopover extends Component {
 			cls: "definition-popover",
 			attr: {
 				id: DEF_POPOVER_ID,
-				style: `visibility:hidden`
+				style: `visibility:hidden;${popoverSettings.backgroundColour ? 
+`background-color: ${popoverSettings.backgroundColour};` : ''}`
 			},
 		});
 

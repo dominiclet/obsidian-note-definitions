@@ -30,6 +30,7 @@ export interface DefinitionPopoverConfig {
 	maxHeight: number;
 	popoverDismissEvent: PopoverDismissType;
 	enableDefinitionLink: boolean;
+	backgroundColour?: string;
 }
 
 export interface Settings {
@@ -274,6 +275,26 @@ export class SettingsTab extends PluginSettingTab {
 					this.settings.defPopoverConfig.enableDefinitionLink = val;
 					await this.plugin.saveSettings();
 				});
+			});
+
+		new Setting(containerEl)
+			.setName("Background colour")
+			.setDesc("Customise the background colour of the definition popover")
+			.addExtraButton(component => {
+				component.setIcon("rotate-ccw");
+				component.setTooltip("Reset to default colour set by theme");
+				component.onClick(async () => {
+					this.settings.defPopoverConfig.backgroundColour = undefined;
+					await this.plugin.saveSettings();
+					this.display();
+				});
+			})
+			.addColorPicker(component => {
+				component.setValue(this.settings.defPopoverConfig.backgroundColour);
+				component.onChange(async val => {
+					this.settings.defPopoverConfig.backgroundColour = val;
+					await this.plugin.saveSettings();
+				})
 			});
 	}
 }
