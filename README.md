@@ -6,8 +6,8 @@ A personal dictionary that can be easily looked-up from within your notes.
 
 ## Basic usage
 
-1. Create a `definitions` folder in the root of your Obsidian vault (this folder can be customised in the settings).
-2. Within the `definitions` folder, create definition files (with any name of your choice).
+1. Create a folder, right-click on the folder in your file explorer, and select `Set definition folder`. This registers the folder as your definition folder.
+2. Within the folder, create definition files (with any name of your choice).
 3. Add a definition using the `Add definition` command. This will display a pop-up modal, where you can input your definition.
 4. Once a definition is added, the word/phrase should be underlined in your notes. You may preview the definition of the word by hovering over the underlined word/phrase with the mouse, or triggering the `Preview definition` command when your cursor is on the word/phrase.
 
@@ -27,6 +27,7 @@ You may want to assign hotkeys to the commands available for easy access:
 - Add definition context (see [Definition context](#definition-context))
 - Register consolidated definition file
 - Register atomic definition file
+- Refresh definitions
 
 ## How it works
 
@@ -54,8 +55,8 @@ A `consolidated` definition file is parsed according to the following rules:
 1. A definition block consists of a **phrase (1 or more words), an alias (optional) and a definition**. They must be provided **strictly** in that order.
 2. A phrase is denoted with a line in the following format `# <PHRASE>`. This is rendered as a markdown header in Obsidian.
 3. An **optional** comma-separated line of alias(es) is expected after a phrase. This must be a line surrounded by asterisks, eg. `*alias*`. *This is rendered as italics in Obsidian*.
-4. A line that occurs after a registered **phrase** and is not an alias is deemed to be a definition. Definitions can be multi-line. All subsequent lines are definitions until the definition block delimiter is encountered. You may write markdown here, which will be formatted similar to Obsidian's markdown formatting.
-5. A line with nothing but three hyphens `---` is used as a delimiter to separate definition blocks. This is rendered as a delimiting line in Obsidian. (This delimiter can be configured in the settings to recognise three underscores `___` as well)
+4. A line that occurs after a registered **phrase** and is not an alias is deemed to be a definition. Definitions can be multi-line. All subsequent lines are definitions until the definition block divider is encountered. You may write markdown here, which will be formatted similar to Obsidian's markdown formatting.
+5. A line with nothing but three hyphens `---` is used as a divider to separate definition blocks. This is rendered as a delimiting line in Obsidian. (This divider can be configured in the settings to recognise three underscores `___` as well)
 
 Example definition file:
 
@@ -65,14 +66,14 @@ Example definition file:
 > 
 > Definition of word1.
 > This definition can span several lines.
-> It will end when the delimiter is reached.
+> It will end when the divider is reached.
 > 
 > ---
 > 
 > # Word2
 >
 > Notice that there is no alias here as it is optional.
-> The last word in the file does not need to have a delimiter, although it is still valid to have one.
+> The last word in the file does not need to have a divider, although it is still valid to have one.
 > 
 > ---
 > 
@@ -143,6 +144,10 @@ You can edit your properties directly, although for convenience, it is recommend
 
 To remove contexts, simply remove the file path from the `def-context` property.
 Or if you want to remove all contexts, you can delete the `def-context` property altogether.
+
+## Refreshing definitions
+
+Whenever you find that the plugin is not detecting certain definitions or definition files, run the `Refresh definitions` command to manually get the plugin to read your definition files.
 
 ## Feedback
 
