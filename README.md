@@ -25,6 +25,8 @@ You may want to assign hotkeys to the commands available for easy access:
 - Go to definition (jump to definition of word/phrase)
 - Add definition
 - Add definition context (see [Definition context](#definition-context))
+- Register consolidated definition file
+- Register atomic definition file
 
 ## How it works
 
@@ -35,6 +37,19 @@ You may edit these entries freely to add/edit your definitions, but if you do so
 **It is recommended that you read through the definition rules first before manually editing the definition files.**
 
 ### Definition rules
+
+Currently, there are two types of definition files: `consolidated` and `atomic`.
+The type of definition file is specified in the `def-type` frontmatter (or property) of a file.
+For all definition files you create, the `def-type` frontmatter should be set to either 'consolidated' or 'atomic'.
+For compatibility reasons, a file is treated to be `consolidated` if the `def-type` frontmatter is not specified (but this is not guaranteed to remain the same in subsequent releases, so always specify the frontmatter when creating a new definition file). 
+For convenience, use the commands provided to add the `def-type` frontmatter.
+
+#### Consolidated definition file
+
+A `consolidated` file type refers to a file that can contain many definitions.
+Register a definition file by specifying the `def-type: consolidated` frontmatter, or using the `Register consolidated definition file` command when the file is active.
+
+A `consolidated` definition file is parsed according to the following rules:
 
 1. A definition block consists of a **phrase (1 or more words), an alias (optional) and a definition**. They must be provided **strictly** in that order.
 2. A phrase is denoted with a line in the following format `# <PHRASE>`. This is rendered as a markdown header in Obsidian.
@@ -70,6 +85,23 @@ Example definition file:
 > # Markdown support
 > 
 > Markdown is supported so you can do things like including *italics* or **bold** words.
+
+#### Atomic definition file
+
+An `atomic` definition file refers to a file that contains only one definition.
+Register an atomic definition file by specifying the `def-type: atomic` frontmatter, or using the `Register atomic definition file` command when the file is active.
+
+An `atomic` definition file is parsed according to the following rules:
+1. The name of the file is the word/phrase defined
+2. Aliases are specified in the `aliases` frontmatter as a list. In source, it should look something like this:
+```
+---
+aliases:
+  - alias1
+  - alias2
+---
+```
+3. The contents of the file (excluding the frontmatter) form the definition
 
 ## Definition context
 > _TLDR:_ "Context" is synonymous with a definition file. By specifying a context, you specify that you want to use specific definition file(s) to source your definitions for the current note.
@@ -116,3 +148,7 @@ Or if you want to remove all contexts, you can delete the `def-context` property
 
 I welcome any feedback on how to improve this tool.
 Do let me know by opening a Github issue if you find any bugs, or have any ideas for features or improvements.
+
+## Contributing
+
+If you're a programmer and would like to see certain features implemented, I welcome and would be grateful for contributions. If you are interested, please do let me know in the issue thread.

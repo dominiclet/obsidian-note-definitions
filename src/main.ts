@@ -14,6 +14,8 @@ import { EditDefinitionModal } from './editor/edit-modal';
 import { AddDefinitionModal } from './editor/add-modal';
 import { initDefinitionModal } from './editor/mobile/definition-modal';
 import { FMSuggestModal } from './editor/frontmatter-suggest-modal';
+import { registerDefFile } from './editor/def-file-registration';
+import { DefFileType } from './core/file-parser';
 
 export default class NoteDefinition extends Plugin {
 	activeEditorExtensions: Extension[] = [];
@@ -87,7 +89,7 @@ export default class NoteDefinition extends Plugin {
 		this.addCommand({
 			id: "add-def-context",
 			name: "Add definition context",
-			editorCallback: (editor) =>{
+			editorCallback: (editor) => {
 				const activeFile = this.app.workspace.getActiveFile();
 				if (!activeFile) {
 					new Notice("Command must be used within an active opened file");
@@ -97,6 +99,41 @@ export default class NoteDefinition extends Plugin {
 				suggestModal.open();
 			}
 		});
+
+		this.addCommand({
+			id: "refresh-definitions",
+			name: "Refresh definitions",
+			callback: () => {
+				this.fileExplorerDeco.run();
+				this.defManager.loadDefinitions();
+			}
+		});
+
+		this.addCommand({
+			id: "register-consolidated-def-file",
+			name: "Register consolidated definition file",
+			editorCallback: (_) => {
+				const activeFile = this.app.workspace.getActiveFile();
+				if (!activeFile) {
+					new Notice("Command must be used within an active opened file");
+					return;
+				}
+				registerDefFile(this.app, activeFile, DefFileType.Consolidated);
+			}
+		});
+
+		this.addCommand({
+			id: "register-atomic-def-file",
+			name: "Register atomic definition file",
+			editorCallback: (_) => {
+				const activeFile = this.app.workspace.getActiveFile();
+				if (!activeFile) {
+					new Notice("Command must be used within an active opened file");
+					return;
+				}
+				registerDefFile(this.app, activeFile, DefFileType.Atomic);
+			}
+		})
 	}
 
 	registerEvents() {

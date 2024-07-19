@@ -1,164 +1,54 @@
-import { App, TFile, Vault } from "obsidian";
-import { DefFileParseConfig, getSettings } from "src/settings";
-import { Definition, FilePosition } from "./model";
+import { App, TFile } from "obsidian";
+import { getSettings } from "src/settings";
+import { AtomicDefParser } from "./atomic-def-parser";
+import { ConsolidatedDefParser } from "./consolidated-def-parser";
+import { Definition } from "./model";
 
+export const DEF_TYPE_FM = "def-type";
+
+export enum DefFileType {
+	Consolidated = "consolidated",
+	Atomic = "atomic"
+}
 
 export class FileParser {
 	app: App;
-	vault: Vault;
 	file: TFile;
-	defBuffer: {
-		word?: string;
-		aliases?: string[];
-		definition?: string;
-		filePosition?: Partial<FilePosition>;
-	};
-	inDefinition: boolean;
-	definitions: Definition[];
-
-	currLine: number;
 
 	constructor(app: App, file: TFile) {
 		this.app = app;
-		this.vault = app.vault;
 		this.file = file;
-		this.defBuffer = {};
-		this.inDefinition = false;
-		this.definitions = [];
 	}
 
+	// Optional argument used when file cache may not be updated
+	// and we know the new contents of the file
 	async parseFile(fileContent?: string): Promise<Definition[]> {
-		if (!fileContent) {
-			fileContent = await this.vault.cachedRead(this.file)
+		const defFileType = this.getDefFileType();
+
+		switch (defFileType) {
+			case DefFileType.Consolidated:
+				const defParser = new ConsolidatedDefParser(this.app, this.file);
+				return defParser.parseFile(fileContent);
+			case DefFileType.Atomic:
+				const atomicParser = new AtomicDefParser(this.app, this.file);
+				return atomicParser.parseFile(fileContent);
 		}
+	}
 
-		// Ignore frontmatter (properties)
-		const fileMetadata = this.app.metadataCache.getFileCache(this.file);
-		const fmPos = fileMetadata?.frontmatterPosition;
-		if (fmPos) {
-			fileContent = fileContent.slice(fmPos.end.offset+1);
+	private getDefFileType(): DefFileType {
+		const fileCache = this.app.metadataCache.getFileCache(this.file);
+		const fmFileType = fileCache?.frontmatter?.[DEF_TYPE_FM];
+		if (fmFileType && 
+			(fmFileType === DefFileType.Consolidated || fmFileType === DefFileType.Atomic)) {
+			return fmFileType;
 		}
+		
+		// Fallback to configured default
+		const parserSettings = getSettings().defFileParseConfig;
 
-		const lines = fileContent.split('\n');
-		this.currLine = -1;
-
-		for (const line of lines) {
-			this.currLine++;
-
-			if (this.isEndOfBlock(line)) {
-				if (this.bufferValid()) {
-					this.commitDefBuffer();
-				}
-				this.startNewBlock();
-				continue
-			}
-			if (this.inDefinition) {
-				this.defBuffer.definition += line + "\n";
-				continue
-			}
-
-			// If not within definition, ignore empty lines
-			if (line == "") {
-				continue
-			}
-			if (this.isWordDeclaration(line)) {
-				let from = this.currLine;
-				this.defBuffer.filePosition = {
-					from: from,
-				}
-				this.defBuffer.word = this.extractWordDeclaration(line);
-				continue
-			}
-			if (this.isAliasDeclaration(line)) {
-				this.defBuffer.aliases = this.extractAliases(line);
-				continue
-			}
-			// Begin definition
-			this.inDefinition = true;
-			this.defBuffer.definition = line + "\n";
+		if (parserSettings.defaultFileType) {
+			return parserSettings.defaultFileType;
 		}
-		this.currLine++;
-		if (this.bufferValid()) {
-			this.commitDefBuffer();
-		}
-		return this.definitions;
-	}
-
-	private commitDefBuffer() {
-		// Register word
-		this.definitions.push({
-			key: this.defBuffer.word?.toLowerCase() ?? "",
-			word: this.defBuffer.word ?? "",
-			aliases: this.defBuffer.aliases ?? [],
-			definition: this.defBuffer.definition ?? "",
-			file: this.file,
-			linkText: `${this.file.path}${this.defBuffer.word ? '#'+this.defBuffer.word : ''}`,
-			position: {
-				from: this.defBuffer.filePosition?.from ?? 0, 
-				to: this.currLine-1,
-			}
-		});
-		// Register aliases
-		if (this.defBuffer.aliases && this.defBuffer.aliases.length > 0) {
-			this.defBuffer.aliases.forEach(alias => {
-				this.definitions.push({
-					key: alias.toLowerCase(),
-					word: this.defBuffer.word ?? "",
-					aliases: this.defBuffer.aliases ?? [],
-					definition: this.defBuffer.definition ?? "",
-					file: this.file,
-					linkText: `${this.file.path}${this.defBuffer.word ? '#'+this.defBuffer.word : ''}`,
-					position: {
-						from: this.defBuffer.filePosition?.from ?? 0, 
-						to: this.currLine-1,
-					}
-				});
-			});
-		}
-		this.defBuffer = {};
-	}
-
-	private bufferValid(): boolean {
-		return !!this.defBuffer.word;
-	}
-
-	private isEndOfBlock(line: string): boolean {
-		const parseSettings = this.getParseSettings();
-		if (parseSettings.divider.dash && line.startsWith("---")) {
-			return true;
-		}
-		return parseSettings.divider.underscore && line.startsWith("___");
-	}
-
-	private isAliasDeclaration(line: string): boolean {
-		line = line.trimEnd();
-		return !!this.defBuffer.word && line.startsWith("*") && line.endsWith("*");
-	}
-
-	private extractAliases(line: string): string[] {{
-		line = line.trimEnd().replace(/\*+/g, '');
-		const aliases = line.split(",");
-		return aliases.map(alias => alias.trim())
-	}}
-
-	private isWordDeclaration(line: string): boolean {
-		return line.startsWith("# ");
-	}
-
-	private extractWordDeclaration(line: string): string {
-		const sepLine = line.split(" ");
-		if (sepLine.length <= 1) {
-			// Invalid word
-			return "";
-		}
-		return sepLine.slice(1).join(' ');
-	}
-
-	private startNewBlock() {
-		this.inDefinition = false;
-	}
-
-	private getParseSettings(): DefFileParseConfig {
-		return getSettings().defFileParseConfig;
+		return DefFileType.Consolidated;
 	}
 }

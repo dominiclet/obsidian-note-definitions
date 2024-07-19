@@ -1,4 +1,5 @@
 import { App, Modal, Notice, PluginSettingTab, Setting, setTooltip } from "obsidian";
+import { DefFileType } from "./core/file-parser";
 import NoteDefinition from "./main";
 
 export enum PopoverEventSettings {
@@ -17,6 +18,7 @@ export interface DividerSettings {
 }
 
 export interface DefFileParseConfig {
+	defaultFileType: DefFileType;
 	divider: DividerSettings;
 }
 
@@ -44,6 +46,7 @@ export const DEFAULT_SETTINGS: Partial<Settings> = {
 	enableInReadingView: true,
 	popoverEvent: PopoverEventSettings.Hover,
 	defFileParseConfig: {
+		defaultFileType: DefFileType.Consolidated,
 		divider: {
 			dash: true,
 			underscore: false
@@ -140,6 +143,19 @@ export class SettingsTab extends PluginSettingTab {
 						});
 					modal.open();
 				})
+			});
+
+		new Setting(containerEl)
+			.setName("Default definition file type")
+			.setDesc("When the 'def-type' frontmatter is not specified, the definition file will be treated as this configured default file type.")
+			.addDropdown(component => {
+				component.addOption(DefFileType.Consolidated, "consolidated");
+				component.addOption(DefFileType.Atomic, "atomic");
+				component.setValue(this.settings.defFileParseConfig.defaultFileType ?? DefFileType.Consolidated);
+				component.onChange(async val => {
+					this.settings.defFileParseConfig.defaultFileType = val as DefFileType;
+					await this.plugin.saveSettings();
+				});
 			});
 
 		new Setting(containerEl)

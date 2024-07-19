@@ -4,7 +4,7 @@ import { DEFAULT_DEF_FOLDER } from "src/settings";
 import { normaliseWord } from "src/util/editor";
 import { logDebug, logWarn } from "src/util/log";
 import { useRetry } from "src/util/retry";
-import { FileParser } from "./file-parser";
+import { DefFileType, FileParser } from "./file-parser";
 import { Definition } from "./model";
 
 let defFileManager: DefManager;
@@ -19,6 +19,10 @@ export class DefManager {
 	globalPrefixTree: PTreeNode;
 	lastUpdate: number;
 
+	markedDirty: TFile[];
+
+	consolidatedDefFiles: Map<string, TFile>;
+
 	activeFile: TFile | null;
 	localPrefixTree: PTreeNode;
 	shouldUseLocalPTree: boolean;
@@ -29,12 +33,18 @@ export class DefManager {
 		this.globalDefFiles = new Map<string, TFile>();
 		this.globalDefFolders = new Map<string, TFolder>();
 		this.globalPrefixTree = new PTreeNode();
+		this.consolidatedDefFiles = new Map<string, TFile>();
 		this.resetLocalConfigs()
 		this.lastUpdate = 0;
+		this.markedDirty = [];
 
 		window.NoteDefinition.definitions.global = this.globalDefs;
 
 		this.loadDefinitions();
+	}
+
+	addDefFile(file: TFile) {
+		this.globalDefFiles.set(file.path, file);
 	}
 
 	// Get the appropriate prefix tree to use for current active file
@@ -74,6 +84,10 @@ export class DefManager {
 		this.resetLocalConfigs();
 		this.buildLocalPrefixTree(defSource);
 		this.shouldUseLocalPTree = true;
+	}
+
+	markDirty(file: TFile) {
+		this.markedDirty.push(file);
 	}
 
 	private flattenPathList(paths: string[]): string[] {
@@ -155,8 +169,16 @@ export class DefManager {
 		return this.globalDefs.get(normaliseWord(key));
 	}
 
+	set(def: Definition) {
+		this.globalDefs.set(def)
+	}
+
 	getDefFiles(): TFile[] {
 		return [...this.globalDefFiles.values()];
+	}
+
+	getConsolidatedDefFiles(): TFile[] {
+		return [...this.consolidatedDefFiles.values()];
 	}
 
 	getDefFolders(): TFolder[] {
@@ -167,7 +189,9 @@ export class DefManager {
 		const definitions: Definition[] = [];
 		const dirtyFiles: string[] = [];
 
-		for (let file of this.globalDefFiles.values()) {
+		const files = [...this.globalDefFiles.values(), ...this.markedDirty];
+
+		for (let file of files) {
 			if (file.stat.mtime > this.lastUpdate) {
 				logDebug(`File ${file.path} was updated, reloading definitions...`);
 				dirtyFiles.push(file.path);
@@ -185,6 +209,8 @@ export class DefManager {
 				this.globalDefs.set(def);
 			});
 		}
+
+		this.markedDirty = [];
 		this.buildPrefixTree();
 		this.lastUpdate = Date.now();
 	}
@@ -247,7 +273,11 @@ export class DefManager {
 	private async parseFile(file: TFile): Promise<Definition[]> {
 		this.globalDefFiles.set(file.path, file);
 		let parser = new FileParser(this.app, file);
-		return parser.parseFile();
+		const def = await parser.parseFile();
+		if (def.length > 0 && def[0].fileType === DefFileType.Consolidated) {
+			this.consolidatedDefFiles.set(file.path, file);
+		}
+		return def;
 	}
 
 	getGlobalDefFolder() {
@@ -295,6 +325,14 @@ export class DefinitionRepo {
 			return;
 		}
 		defMap.set(def.key, def);
+
+		if (def.aliases.length > 0) {
+			def.aliases.forEach(alias => {
+				if (defMap) {
+					defMap.set(alias.toLowerCase(), def);
+				}
+			});
+		}
 	}
 
 	clearForFile(filePath: string) {
