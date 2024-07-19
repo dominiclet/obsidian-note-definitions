@@ -290,7 +290,9 @@ export class SettingsTab extends PluginSettingTab {
 				});
 			})
 			.addColorPicker(component => {
-				component.setValue(this.settings.defPopoverConfig.backgroundColour);
+				if (this.settings.defPopoverConfig.backgroundColour) {
+					component.setValue(this.settings.defPopoverConfig.backgroundColour);
+				}
 				component.onChange(async val => {
 					this.settings.defPopoverConfig.backgroundColour = val;
 					await this.plugin.saveSettings();
