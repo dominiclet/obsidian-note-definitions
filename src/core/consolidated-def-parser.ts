@@ -138,7 +138,7 @@ export class ConsolidatedDefParser {
 
 	private extractAliases(line: string): string[] {{
 		line = line.trimEnd().replace(/\*+/g, '');
-		const aliases = line.split(",");
+		const aliases = line.split(/[,|]/);
 		return aliases.map(alias => alias.trim())
 	}}
 
