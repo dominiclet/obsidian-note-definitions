@@ -18,6 +18,7 @@
 .def-decoration {
     display: inline-block;
     border-bottom: 2px dotted var(--color-yellow);
+	line-height: 1;
 }
 
 .def-link-decoration {
