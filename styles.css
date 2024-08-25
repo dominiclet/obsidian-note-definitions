@@ -16,7 +16,8 @@
 }
 
 .def-decoration {
-	text-decoration: underline var(--color-yellow) dotted;
+    display: inline-block;
+    border-bottom: 2px dotted var(--color-yellow);
 }
 
 .def-link-decoration {
