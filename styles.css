@@ -17,10 +17,12 @@
 
 .def-decoration {
 	text-decoration: underline var(--color-yellow) dotted;
+	-webkit-text-decoration: underline var(--color-yellow) dotted;
 }
 
 .def-link-decoration {
 	text-decoration: underline var(--color-green) dotted;
+	-webkit-text-decoration: underline var(--color-green) dotted;
 	cursor: pointer;
 }
 
