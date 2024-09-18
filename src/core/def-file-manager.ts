@@ -274,7 +274,7 @@ export class DefManager {
 		this.globalDefFiles.set(file.path, file);
 		let parser = new FileParser(this.app, file);
 		const def = await parser.parseFile();
-		if (def.length > 0 && def[0].fileType === DefFileType.Consolidated) {
+		if (parser.defFileType === DefFileType.Consolidated) {
 			this.consolidatedDefFiles.set(file.path, file);
 		}
 		return def;

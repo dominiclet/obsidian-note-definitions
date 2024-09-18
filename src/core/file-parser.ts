@@ -13,7 +13,8 @@ export enum DefFileType {
 
 export class FileParser {
 	app: App;
-	file: TFile;
+	file: TFile
+	defFileType?: DefFileType;
 
 	constructor(app: App, file: TFile) {
 		this.app = app;
@@ -23,9 +24,9 @@ export class FileParser {
 	// Optional argument used when file cache may not be updated
 	// and we know the new contents of the file
 	async parseFile(fileContent?: string): Promise<Definition[]> {
-		const defFileType = this.getDefFileType();
+		this.defFileType = this.getDefFileType();
 
-		switch (defFileType) {
+		switch (this.defFileType) {
 			case DefFileType.Consolidated:
 				const defParser = new ConsolidatedDefParser(this.app, this.file);
 				return defParser.parseFile(fileContent);
