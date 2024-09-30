@@ -1,15 +1,15 @@
-import { App, CachedMetadata, TFile } from "obsidian";
+import { BaseDefParser } from "./base-def-parser";
+import { App, TFile } from "obsidian";
 import { DefFileType } from "./file-parser";
 import { Definition } from "./model";
 
 
-export class AtomicDefParser {
+export class AtomicDefParser extends BaseDefParser {
 	app: App;
 	file: TFile;
 
 	constructor(app: App, file: TFile) {
-		this.app = app;
-		this.file = file;
+		super(app, file);
 	}
 
 	async parseFile(fileContent?: string): Promise<Definition[]> {
@@ -30,6 +30,8 @@ export class AtomicDefParser {
 		if (fmPos) {
 			fileContent = fileContent.slice(fmPos.end.offset+1);
 		}
+
+		aliases = aliases.concat(this.calculatePlurals([this.file.basename].concat(aliases)));
 
 		const def = {
 			key: this.file.basename.toLowerCase(),
