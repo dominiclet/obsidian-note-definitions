@@ -38,7 +38,7 @@ export class DefManager {
 		this.lastUpdate = 0;
 		this.markedDirty = [];
 
-		window.NoteDefinition.definitions.global = this.globalDefs;
+		activeWindow.NoteDefinition.definitions.global = this.globalDefs;
 
 		this.loadDefinitions();
 	}
