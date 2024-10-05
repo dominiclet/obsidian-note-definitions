@@ -1,12 +1,13 @@
 import { App, TFile } from "obsidian";
-import { DefFileParseConfig, getSettings } from "src/settings";
+import { BaseDefParser } from "./base-def-parser";
 import { DefFileType } from "./file-parser";
 import { Definition, FilePosition } from "./model";
 
 
-export class ConsolidatedDefParser {
+export class ConsolidatedDefParser extends BaseDefParser {
 	app: App;
 	file: TFile;
+
 	defBuffer: {
 		word?: string;
 		aliases?: string[];
@@ -19,8 +20,8 @@ export class ConsolidatedDefParser {
 	currLine: number;
 
 	constructor(app: App, file: TFile) {
-		this.app = app;
-		this.file = file;
+		super(app, file);
+
 		this.defBuffer = {};
 		this.inDefinition = false;
 		this.definitions = [];
@@ -84,6 +85,9 @@ export class ConsolidatedDefParser {
 	}
 
 	private commitDefBuffer() {
+		const aliases = [this.defBuffer.word ?? ""].concat(this.defBuffer.aliases ?? []);
+		this.defBuffer.aliases = aliases.concat(this.calculatePlurals(aliases));
+
 		// Register word
 		this.definitions.push({
 			key: this.defBuffer.word?.toLowerCase() ?? "",
@@ -157,9 +161,5 @@ export class ConsolidatedDefParser {
 
 	private startNewBlock() {
 		this.inDefinition = false;
-	}
-
-	private getParseSettings(): DefFileParseConfig {
-		return getSettings().defFileParseConfig;
 	}
 }

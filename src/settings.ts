@@ -20,6 +20,7 @@ export interface DividerSettings {
 export interface DefFileParseConfig {
 	defaultFileType: DefFileType;
 	divider: DividerSettings;
+	autoPlurals: boolean;
 }
 
 export interface DefinitionPopoverConfig {
@@ -51,7 +52,8 @@ export const DEFAULT_SETTINGS: Partial<Settings> = {
 		divider: {
 			dash: true,
 			underscore: false
-		}
+		},
+		autoPlurals: false
 	},
 	defPopoverConfig: {
 		displayAliases: true,
@@ -155,6 +157,17 @@ export class SettingsTab extends PluginSettingTab {
 				component.setValue(this.settings.defFileParseConfig.defaultFileType ?? DefFileType.Consolidated);
 				component.onChange(async val => {
 					this.settings.defFileParseConfig.defaultFileType = val as DefFileType;
+					await this.plugin.saveSettings();
+				});
+			});
+
+		new Setting(containerEl)
+			.setName("Automatically detect plurals -- English only")
+			.setDesc("Attempt to automatically generate aliases for words using English pluralisation rules")
+			.addToggle((component) => {
+				component.setValue(this.settings.defFileParseConfig.autoPlurals);
+				component.onChange(async (val) => {
+					this.settings.defFileParseConfig.autoPlurals = val;
 					await this.plugin.saveSettings();
 				});
 			});
