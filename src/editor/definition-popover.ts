@@ -241,8 +241,9 @@ export class DefinitionPopover extends Component {
 	}
 
 	private registerClosePopoverListeners() {
-		this.app.workspace.containerEl.addEventListener("keypress", this.close);
-		this.app.workspace.containerEl.addEventListener("click", this.clickClose);
+		this.getActiveView()?.containerEl.addEventListener("keypress", this.close);
+		this.getActiveView()?.containerEl.addEventListener("click", this.clickClose);
+		
 		if (this.mountedPopover) {
 			this.mountedPopover.addEventListener("mouseleave", () => {
 				const popoverSettings = getSettings().defPopoverConfig;
@@ -261,8 +262,9 @@ export class DefinitionPopover extends Component {
 	}
 
 	private unregisterClosePopoverListeners() {
-		this.app.workspace.containerEl.removeEventListener("keypress", this.close);
-		this.app.workspace.containerEl.removeEventListener("click", this.clickClose);
+		this.getActiveView()?.containerEl.removeEventListener("keypress", this.close);
+		this.getActiveView()?.containerEl.removeEventListener("click", this.clickClose);
+
 		if (this.cmEditor) {
 			this.cmEditor.off("vim-keypress", this.close);
 		}
@@ -281,6 +283,10 @@ export class DefinitionPopover extends Component {
 
 	getPopoverElement() {
 		return document.getElementById("definition-popover");
+	}
+
+	private getActiveView() {
+		return this.app.workspace.getActiveViewOfType(MarkdownView);
 	}
 }
 

@@ -1,7 +1,7 @@
 import { Platform } from "obsidian";
 import { getSettings, PopoverEventSettings } from "src/settings";
 
-const triggerFunc = 'event.stopPropagation();window.NoteDefinition.triggerDefPreview(this);';
+const triggerFunc = 'event.stopPropagation();activeWindow.NoteDefinition.triggerDefPreview(this);';
 
 export const DEF_DECORATION_CLS = "def-decoration";
 

@@ -22,10 +22,10 @@ export interface GlobalVars {
 }
 
 // Initialise and inject globals
-export function injectGlobals(settings: Settings, app: App) {
-	window.NoteDefinition = {
+export function injectGlobals(settings: Settings, app: App, targetWindow: Window) {
+	targetWindow.NoteDefinition = {
 		app: app,
-		LOG_LEVEL: window.NoteDefinition?.LOG_LEVEL || LogLevel.Error,
+		LOG_LEVEL: activeWindow.NoteDefinition?.LOG_LEVEL || LogLevel.Error,
 		definitions: {
 			global: new DefinitionRepo(),
 		},

@@ -1,4 +1,4 @@
-import { Menu, Notice, Plugin, TFolder } from 'obsidian';
+import { Menu, Notice, Plugin, TFolder, WorkspaceWindow } from 'obsidian';
 import { injectGlobals } from './globals';
 import { logDebug } from './util/log';
 import { definitionMarker } from './editor/decoration';
@@ -25,7 +25,11 @@ export default class NoteDefinition extends Plugin {
 	async onload() {
 		// Settings are injected into global object
 		const settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData())
-		injectGlobals(settings, this.app);
+		injectGlobals(settings, this.app, window);
+
+		this.registerEvent(this.app.workspace.on('window-open', (win: WorkspaceWindow, newWindow: Window) => {
+			injectGlobals(settings, this.app, newWindow);
+		}))
 
 		logDebug("Load note definition plugin");
 
