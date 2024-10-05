@@ -1,4 +1,4 @@
-import { App, Component, MarkdownRenderer, Modal } from "obsidian";
+import { App, Component, MarkdownRenderer, normalizePath, Modal } from "obsidian";
 import { Definition } from "src/core/model";
 
 let defModal: DefinitionModal;
@@ -27,7 +27,7 @@ export class DefinitionModal extends Component {
 			}
 		});
 		MarkdownRenderer.render(this.app, definition.definition, defContent,
-			this.app.workspace.getActiveFile()?.path ?? '', this);
+			normalizePath(definition.file.path) ?? '', this);
 		this.modal.open();
 	}
 }
