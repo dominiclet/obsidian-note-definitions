@@ -85,8 +85,8 @@ export class ConsolidatedDefParser extends BaseDefParser {
 	}
 
 	private commitDefBuffer() {
-		const aliases = [this.defBuffer.word ?? ""].concat(this.defBuffer.aliases ?? []);
-		this.defBuffer.aliases = aliases.concat(this.calculatePlurals(aliases));
+		const aliases = this.defBuffer.aliases ?? [];
+		this.defBuffer.aliases = aliases.concat(this.calculatePlurals([this.defBuffer.word ?? ""].concat(aliases)));
 
 		// Register word
 		this.definitions.push({
