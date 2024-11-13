@@ -36,6 +36,7 @@ export interface DefinitionPopoverConfig {
 
 export interface Settings {
 	enableInReadingView: boolean;
+	enableSpellcheck: boolean;
 	defFolder: string;
 	popoverEvent: PopoverEventSettings;
 	defFileParseConfig: DefFileParseConfig;
@@ -46,6 +47,7 @@ export const DEFAULT_DEF_FOLDER = "definitions"
 
 export const DEFAULT_SETTINGS: Partial<Settings> = {
 	enableInReadingView: true,
+	enableSpellcheck: true,
 	popoverEvent: PopoverEventSettings.Hover,
 	defFileParseConfig: {
 		defaultFileType: DefFileType.Consolidated,
@@ -92,17 +94,28 @@ export class SettingsTab extends PluginSettingTab {
 				});
 			});
 		new Setting(containerEl)
+			.setName("Enable spellcheck for defined words")
+			.setDesc("Allow defined words and phrases to be spellchecked")
+			.addToggle((component) => {
+				component.setValue(this.settings.enableSpellcheck);
+				component.onChange(async (val) => {
+					this.settings.enableSpellcheck = val;
+					await this.plugin.saveSettings();
+				});
+			});
+
+		new Setting(containerEl)
 			.setName("Definitions folder")
 			.setDesc("Files within this folder will be parsed to register definitions")
 			.addText((component) => {
 				component.setValue(this.settings.defFolder);
 				component.setPlaceholder(DEFAULT_DEF_FOLDER);
 				component.setDisabled(true)
-				setTooltip(component.inputEl, 
+				setTooltip(component.inputEl,
 					"In the file explorer, right-click on the desired folder and click on 'Set definition folder' to change the definition folder",
-				{
-					delay: 100
-				});
+					{
+						delay: 100
+					});
 			});
 		new Setting(containerEl)
 			.setName("Definition file format settings")
@@ -226,7 +239,7 @@ export class SettingsTab extends PluginSettingTab {
 					await this.plugin.saveSettings();
 				});
 			});
-		
+
 
 		new Setting(containerEl)
 			.setName("Display definition source file")
