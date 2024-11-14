@@ -155,6 +155,7 @@ export class DefManager {
 		this.globalPrefixTree = new PTreeNode();
 		this.globalDefs.clear();
 		this.globalDefFiles = new Map<string, TFile>();
+		this.globalDefFolders = new Map<string, TFolder>;
 	}
 
 	// Load all definitions from registered def folder
@@ -278,6 +279,16 @@ export class DefManager {
 			this.consolidatedDefFiles.set(file.path, file);
 		}
 		return def;
+	}
+
+	ensureGlobalDefFolder() {
+		const folderPath = this.getGlobalDefFolder();
+		const folder = this.app.vault.getAbstractFileByPath(folderPath);
+		if (folder) {
+			return null;
+		}
+		this.app.vault.createFolder(folderPath);
+		return folderPath;
 	}
 
 	getGlobalDefFolder() {
