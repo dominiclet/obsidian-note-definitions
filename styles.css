@@ -52,3 +52,9 @@
 	float: right;
 	background-color: var(--interactive-normal);
 }
+
+.add-modal-new-folder-button {
+	font-size: var(--font-ui-medium);
+	float: left;
+	background-color: var(--interactive-normal);
+}
