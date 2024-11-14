@@ -66,13 +66,11 @@ export class AddDefinitionModal {
 				component.addOption(DefFileType.Atomic, "Atomic");
 				component.onChange(val => {
 					if (val === DefFileType.Consolidated) {
-						this.newFolderButton.buttonEl.hide();
 						this.atomicFolderPickerSetting.settingEl.hide();
 						this.defFilePickerSetting.settingEl.show();
 					} else if (val === DefFileType.Atomic) {
 						this.defFilePickerSetting.settingEl.hide();
 						this.atomicFolderPickerSetting.settingEl.show();
-						this.newFolderButton.buttonEl.show();
 					}
 				});
 				this.fileTypePicker = component;
@@ -111,7 +109,7 @@ export class AddDefinitionModal {
 				};
 				this.atomicFolderPicker.addOption(globalFolderPath, globalFolderPath + "/");
 			});
-		this.newFolderButton.buttonEl.hide();
+		//this.newFolderButton.buttonEl.hide();
 
 		const button = this.modal.contentEl.createEl("button", {
 			text: "Save",
