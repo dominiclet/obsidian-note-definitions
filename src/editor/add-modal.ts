@@ -109,7 +109,6 @@ export class AddDefinitionModal {
 				};
 				this.atomicFolderPicker.addOption(globalFolderPath, globalFolderPath + "/");
 			});
-		//this.newFolderButton.buttonEl.hide();
 
 		const button = this.modal.contentEl.createEl("button", {
 			text: "Save",
