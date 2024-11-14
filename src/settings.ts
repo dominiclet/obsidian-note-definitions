@@ -101,7 +101,6 @@ export class SettingsTab extends PluginSettingTab {
 					this.settings.defFolder = val;
 					await this.plugin.saveSettings();
 				});
-				// component.setDisabled(true)
 				setTooltip(component.inputEl, 
 					"In the file explorer, right-click on the desired folder and click on 'Set definition folder' to change the definition folder",
 				{
