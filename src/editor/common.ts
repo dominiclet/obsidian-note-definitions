@@ -20,6 +20,9 @@ export function getDecorationAttrs(phrase: string): { [key: string]: string } {
 	} else {
 		attributes.onmouseenter = triggerFunc;
 	}
+	if (!settings.enableSpellcheck) {
+		attributes.spellcheck = "false";
+	}
 	return attributes;
 }
 
