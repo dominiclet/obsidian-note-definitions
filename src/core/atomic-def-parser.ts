@@ -1,7 +1,7 @@
 import { BaseDefParser } from "./base-def-parser";
 import { App, TFile } from "obsidian";
-import { DefFileType } from "./file-parser";
 import { Definition } from "./model";
+import { DefFileType } from "./file-type";
 
 
 export class AtomicDefParser extends BaseDefParser {

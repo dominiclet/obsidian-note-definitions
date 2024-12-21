@@ -1,12 +1,14 @@
 import { App, TFile } from "obsidian";
-import { BaseDefParser } from "./base-def-parser";
-import { DefFileType } from "./file-parser";
+import { BaseDefParser } from "src/core/base-def-parser";
+import { DefFileParseConfig } from "src/settings";
+import { DefFileType } from "./file-type";
 import { Definition, FilePosition } from "./model";
 
 
 export class ConsolidatedDefParser extends BaseDefParser {
 	app: App;
 	file: TFile;
+	parseSettings: DefFileParseConfig;
 
 	defBuffer: {
 		word?: string;
@@ -19,11 +21,13 @@ export class ConsolidatedDefParser extends BaseDefParser {
 
 	currLine: number;
 
-	constructor(app: App, file: TFile) {
-		super();
+	constructor(app: App, file: TFile, parseSettings?: DefFileParseConfig) {
+		super(parseSettings);
 
 		this.app = app;
 		this.file = file;
+
+		this.parseSettings = parseSettings ? parseSettings : this.getParseSettings();
 
 		this.defBuffer = {};
 		this.inDefinition = false;
@@ -136,11 +140,10 @@ export class ConsolidatedDefParser extends BaseDefParser {
 	}
 
 	private isEndOfBlock(line: string): boolean {
-		const parseSettings = this.getParseSettings();
-		if (parseSettings.divider.dash && line.startsWith("---")) {
+		if (this.parseSettings.divider.dash && line.startsWith("---")) {
 			return true;
 		}
-		return parseSettings.divider.underscore && line.startsWith("___");
+		return this.parseSettings.divider.underscore && line.startsWith("___");
 	}
 
 	private isAliasDeclaration(line: string): boolean {

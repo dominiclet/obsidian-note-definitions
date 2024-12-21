@@ -2,14 +2,10 @@ import { App, TFile } from "obsidian";
 import { getSettings } from "src/settings";
 import { AtomicDefParser } from "./atomic-def-parser";
 import { ConsolidatedDefParser } from "./consolidated-def-parser";
+import { DefFileType } from "./file-type";
 import { Definition } from "./model";
 
 export const DEF_TYPE_FM = "def-type";
-
-export enum DefFileType {
-	Consolidated = "consolidated",
-	Atomic = "atomic"
-}
 
 export class FileParser {
 	app: App;
