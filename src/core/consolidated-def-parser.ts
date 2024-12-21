@@ -20,7 +20,10 @@ export class ConsolidatedDefParser extends BaseDefParser {
 	currLine: number;
 
 	constructor(app: App, file: TFile) {
-		super(app, file);
+		super();
+
+		this.app = app;
+		this.file = file;
 
 		this.defBuffer = {};
 		this.inDefinition = false;
@@ -38,7 +41,12 @@ export class ConsolidatedDefParser extends BaseDefParser {
 		if (fmPos) {
 			fileContent = fileContent.slice(fmPos.end.offset+1);
 		}
+		return this.directParseFile(fileContent);
+	}
 
+	// Parse from string, no dependency on App
+	// For ease of testing
+	directParseFile(fileContent: string) {
 		const lines = fileContent.split('\n');
 		this.currLine = -1;
 

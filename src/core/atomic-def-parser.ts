@@ -9,7 +9,10 @@ export class AtomicDefParser extends BaseDefParser {
 	file: TFile;
 
 	constructor(app: App, file: TFile) {
-		super(app, file);
+		super();
+
+		this.app = app;
+		this.file = file;
 	}
 
 	async parseFile(fileContent?: string): Promise<Definition[]> {
