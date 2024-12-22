@@ -4,7 +4,8 @@ import { DEFAULT_DEF_FOLDER } from "src/settings";
 import { normaliseWord } from "src/util/editor";
 import { logDebug, logWarn } from "src/util/log";
 import { useRetry } from "src/util/retry";
-import { DefFileType, FileParser } from "./file-parser";
+import { FileParser } from "./file-parser";
+import { DefFileType } from "./file-type";
 import { Definition } from "./model";
 
 let defFileManager: DefManager;

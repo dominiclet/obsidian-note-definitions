@@ -100,12 +100,14 @@ export class ConsolidatedDefParser extends BaseDefParser {
 		const aliases = this.defBuffer.aliases ?? [];
 		this.defBuffer.aliases = aliases.concat(this.calculatePlurals([this.defBuffer.word ?? ""].concat(aliases)));
 
+		const definition = (this.defBuffer.definition ?? "").trim();
+
 		// Register word
 		this.definitions.push({
 			key: this.defBuffer.word?.toLowerCase() ?? "",
 			word: this.defBuffer.word ?? "",
 			aliases: this.defBuffer.aliases ?? [],
-			definition: this.defBuffer.definition ?? "",
+			definition: definition,
 			file: this.file,
 			linkText: `${this.file.path}${this.defBuffer.word ? '#'+this.defBuffer.word : ''}`,
 			fileType: DefFileType.Consolidated,
@@ -121,7 +123,7 @@ export class ConsolidatedDefParser extends BaseDefParser {
 					key: alias.toLowerCase(),
 					word: this.defBuffer.word ?? "",
 					aliases: this.defBuffer.aliases ?? [],
-					definition: this.defBuffer.definition ?? "",
+					definition: definition,
 					file: this.file,
 					linkText: `${this.file.path}${this.defBuffer.word ? '#'+this.defBuffer.word : ''}`,
 					fileType: DefFileType.Consolidated,
