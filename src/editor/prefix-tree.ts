@@ -9,7 +9,10 @@ export class PTreeNode {
 		this.wordEnd = false;
 	}
 
-	add(word: string, ptr: number) {
+	add(word: string, ptr?: number) {
+		if (ptr === undefined) {
+			ptr = 0;
+		}
 		if (ptr === word.length) {
 			this.wordEnd = true;
 			return;

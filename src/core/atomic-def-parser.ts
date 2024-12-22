@@ -1,7 +1,7 @@
 import { BaseDefParser } from "./base-def-parser";
 import { App, TFile } from "obsidian";
-import { DefFileType } from "./file-parser";
 import { Definition } from "./model";
+import { DefFileType } from "./file-type";
 
 
 export class AtomicDefParser extends BaseDefParser {
@@ -9,7 +9,10 @@ export class AtomicDefParser extends BaseDefParser {
 	file: TFile;
 
 	constructor(app: App, file: TFile) {
-		super(app, file);
+		super();
+
+		this.app = app;
+		this.file = file;
 	}
 
 	async parseFile(fileContent?: string): Promise<Definition[]> {

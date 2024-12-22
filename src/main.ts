@@ -15,7 +15,7 @@ import { AddDefinitionModal } from './editor/add-modal';
 import { initDefinitionModal } from './editor/mobile/definition-modal';
 import { FMSuggestModal } from './editor/frontmatter-suggest-modal';
 import { registerDefFile } from './editor/def-file-registration';
-import { DefFileType } from './core/file-parser';
+import { DefFileType } from './core/file-type';
 
 export default class NoteDefinition extends Plugin {
 	activeEditorExtensions: Extension[] = [];
@@ -43,7 +43,7 @@ export default class NoteDefinition extends Plugin {
 		this.registerCommands();
 		this.registerEvents();
 
-		this.addSettingTab(new SettingsTab(this.app, this));
+		this.addSettingTab(new SettingsTab(this.app, this, this.saveSettings));
 		this.registerMarkdownPostProcessor(postProcessor);
 
 		this.fileExplorerDeco.run();

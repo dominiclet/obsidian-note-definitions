@@ -1,12 +1,14 @@
 import { App, TFile } from "obsidian";
-import { BaseDefParser } from "./base-def-parser";
-import { DefFileType } from "./file-parser";
+import { BaseDefParser } from "src/core/base-def-parser";
+import { DefFileParseConfig } from "src/settings";
+import { DefFileType } from "./file-type";
 import { Definition, FilePosition } from "./model";
 
 
 export class ConsolidatedDefParser extends BaseDefParser {
 	app: App;
 	file: TFile;
+	parseSettings: DefFileParseConfig;
 
 	defBuffer: {
 		word?: string;
@@ -19,8 +21,13 @@ export class ConsolidatedDefParser extends BaseDefParser {
 
 	currLine: number;
 
-	constructor(app: App, file: TFile) {
-		super(app, file);
+	constructor(app: App, file: TFile, parseSettings?: DefFileParseConfig) {
+		super(parseSettings);
+
+		this.app = app;
+		this.file = file;
+
+		this.parseSettings = parseSettings ? parseSettings : this.getParseSettings();
 
 		this.defBuffer = {};
 		this.inDefinition = false;
@@ -38,7 +45,12 @@ export class ConsolidatedDefParser extends BaseDefParser {
 		if (fmPos) {
 			fileContent = fileContent.slice(fmPos.end.offset+1);
 		}
+		return this.directParseFile(fileContent);
+	}
 
+	// Parse from string, no dependency on App
+	// For ease of testing
+	directParseFile(fileContent: string) {
 		const lines = fileContent.split('\n');
 		this.currLine = -1;
 
@@ -88,12 +100,14 @@ export class ConsolidatedDefParser extends BaseDefParser {
 		const aliases = this.defBuffer.aliases ?? [];
 		this.defBuffer.aliases = aliases.concat(this.calculatePlurals([this.defBuffer.word ?? ""].concat(aliases)));
 
+		const definition = (this.defBuffer.definition ?? "").trim();
+
 		// Register word
 		this.definitions.push({
 			key: this.defBuffer.word?.toLowerCase() ?? "",
 			word: this.defBuffer.word ?? "",
 			aliases: this.defBuffer.aliases ?? [],
-			definition: this.defBuffer.definition ?? "",
+			definition: definition,
 			file: this.file,
 			linkText: `${this.file.path}${this.defBuffer.word ? '#'+this.defBuffer.word : ''}`,
 			fileType: DefFileType.Consolidated,
@@ -109,7 +123,7 @@ export class ConsolidatedDefParser extends BaseDefParser {
 					key: alias.toLowerCase(),
 					word: this.defBuffer.word ?? "",
 					aliases: this.defBuffer.aliases ?? [],
-					definition: this.defBuffer.definition ?? "",
+					definition: definition,
 					file: this.file,
 					linkText: `${this.file.path}${this.defBuffer.word ? '#'+this.defBuffer.word : ''}`,
 					fileType: DefFileType.Consolidated,
@@ -128,11 +142,10 @@ export class ConsolidatedDefParser extends BaseDefParser {
 	}
 
 	private isEndOfBlock(line: string): boolean {
-		const parseSettings = this.getParseSettings();
-		if (parseSettings.divider.dash && line.startsWith("---")) {
+		if (this.parseSettings.divider.dash && line.startsWith("---")) {
 			return true;
 		}
-		return parseSettings.divider.underscore && line.startsWith("___");
+		return this.parseSettings.divider.underscore && line.startsWith("___");
 	}
 
 	private isAliasDeclaration(line: string): boolean {

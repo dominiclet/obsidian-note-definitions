@@ -2,7 +2,8 @@ import { App, Notice } from "obsidian";
 import { getSettings } from "src/settings";
 import { logError, logWarn } from "src/util/log";
 import { getDefFileManager } from "./def-file-manager";
-import { DefFileType, FileParser } from "./file-parser";
+import { FileParser } from "./file-parser";
+import { DefFileType } from "./file-type";
 import { FrontmatterBuilder } from "./fm-builder";
 import { Definition, FilePosition } from "./model";
 

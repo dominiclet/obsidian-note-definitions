@@ -1,6 +1,5 @@
-import { App, Modal, Notice, PluginSettingTab, Setting, setTooltip } from "obsidian";
-import { DefFileType } from "./core/file-parser";
-import NoteDefinition from "./main";
+import { App, Modal, Notice, Plugin, PluginSettingTab, Setting, setTooltip } from "obsidian";
+import { DefFileType } from "./core/file-type";
 
 export enum PopoverEventSettings {
 	Hover = "hover",
@@ -69,13 +68,15 @@ export const DEFAULT_SETTINGS: Partial<Settings> = {
 }
 
 export class SettingsTab extends PluginSettingTab {
-	plugin: NoteDefinition;
+	plugin: Plugin;
 	settings: Settings;
+	saveCallback: () => Promise<void>;
 
-	constructor(app: App, plugin: NoteDefinition) {
+	constructor(app: App, plugin: Plugin, saveCallback: () => Promise<void>) {
 		super(app, plugin);
 		this.plugin = plugin;
 		this.settings = window.NoteDefinition.settings;
+		this.saveCallback = saveCallback;
 	}
 
 	display(): void {
@@ -90,7 +91,7 @@ export class SettingsTab extends PluginSettingTab {
 				component.setValue(this.settings.enableInReadingView);
 				component.onChange(async (val) => {
 					this.settings.enableInReadingView = val;
-					await this.plugin.saveSettings();
+					await this.saveCallback();
 				});
 			});
 		new Setting(containerEl)
@@ -100,7 +101,7 @@ export class SettingsTab extends PluginSettingTab {
 				component.setValue(this.settings.enableSpellcheck);
 				component.onChange(async (val) => {
 					this.settings.enableSpellcheck = val;
-					await this.plugin.saveSettings();
+					await this.saveCallback();
 				});
 			});
 
@@ -139,7 +140,7 @@ export class SettingsTab extends PluginSettingTab {
 									return;
 								}
 								this.settings.defFileParseConfig.divider.dash = value;
-								await this.plugin.saveSettings();
+								await this.saveCallback();
 							});
 						});
 					new Setting(modal.contentEl)
@@ -154,7 +155,7 @@ export class SettingsTab extends PluginSettingTab {
 									return;
 								}
 								this.settings.defFileParseConfig.divider.underscore = value;
-								await this.plugin.saveSettings();
+								await this.saveCallback();
 							});
 						});
 					modal.open();
@@ -170,7 +171,7 @@ export class SettingsTab extends PluginSettingTab {
 				component.setValue(this.settings.defFileParseConfig.defaultFileType ?? DefFileType.Consolidated);
 				component.onChange(async val => {
 					this.settings.defFileParseConfig.defaultFileType = val as DefFileType;
-					await this.plugin.saveSettings();
+					await this.saveCallback();
 				});
 			});
 
@@ -181,7 +182,7 @@ export class SettingsTab extends PluginSettingTab {
 				component.setValue(this.settings.defFileParseConfig.autoPlurals);
 				component.onChange(async (val) => {
 					this.settings.defFileParseConfig.autoPlurals = val;
-					await this.plugin.saveSettings();
+					await this.saveCallback();
 				});
 			});
 
@@ -203,7 +204,7 @@ export class SettingsTab extends PluginSettingTab {
 					if (this.settings.popoverEvent === PopoverEventSettings.Click) {
 						this.settings.defPopoverConfig.popoverDismissEvent = PopoverDismissType.Click;
 					}
-					await this.plugin.saveSettings();
+					await this.saveCallback();
 					this.display();
 				});
 			});
@@ -217,14 +218,14 @@ export class SettingsTab extends PluginSettingTab {
 					component.addOption(PopoverDismissType.MouseExit, "Mouse exit")
 					if (!this.settings.defPopoverConfig.popoverDismissEvent) {
 						this.settings.defPopoverConfig.popoverDismissEvent = PopoverDismissType.Click;
-						this.plugin.saveSettings();
+						this.saveCallback();
 					}
 					component.setValue(this.settings.defPopoverConfig.popoverDismissEvent);
 					component.onChange(async value => {
 						if (value === PopoverDismissType.MouseExit || value === PopoverDismissType.Click) {
 							this.settings.defPopoverConfig.popoverDismissEvent = value;
 						}
-						await this.plugin.saveSettings();
+						await this.saveCallback();
 					});
 				});
 		}
@@ -236,7 +237,7 @@ export class SettingsTab extends PluginSettingTab {
 				component.setValue(this.settings.defPopoverConfig.displayAliases);
 				component.onChange(async value => {
 					this.settings.defPopoverConfig.displayAliases = value;
-					await this.plugin.saveSettings();
+					await this.saveCallback();
 				});
 			});
 
@@ -248,7 +249,7 @@ export class SettingsTab extends PluginSettingTab {
 				component.setValue(this.settings.defPopoverConfig.displayDefFileName);
 				component.onChange(async value => {
 					this.settings.defPopoverConfig.displayDefFileName = value;
-					await this.plugin.saveSettings();
+					await this.saveCallback();
 				});
 			});
 
@@ -259,7 +260,7 @@ export class SettingsTab extends PluginSettingTab {
 				component.setValue(this.settings.defPopoverConfig.enableCustomSize);
 				component.onChange(async value => {
 					this.settings.defPopoverConfig.enableCustomSize = value;
-					await this.plugin.saveSettings();
+					await this.saveCallback();
 					this.display();
 				});
 			});
@@ -274,7 +275,7 @@ export class SettingsTab extends PluginSettingTab {
 					component.setDynamicTooltip()
 					component.onChange(async val => {
 						this.settings.defPopoverConfig.maxWidth = val;
-						await this.plugin.saveSettings();
+						await this.saveCallback();
 					});
 				});
 
@@ -287,7 +288,7 @@ export class SettingsTab extends PluginSettingTab {
 					component.setDynamicTooltip();
 					component.onChange(async val => {
 						this.settings.defPopoverConfig.maxHeight = val;
-						await this.plugin.saveSettings();
+						await this.saveCallback();
 					});
 				});
 		}
@@ -299,7 +300,7 @@ export class SettingsTab extends PluginSettingTab {
 				component.setValue(this.settings.defPopoverConfig.enableDefinitionLink);
 				component.onChange(async val => {
 					this.settings.defPopoverConfig.enableDefinitionLink = val;
-					await this.plugin.saveSettings();
+					await this.saveCallback();
 				});
 			});
 
@@ -311,7 +312,7 @@ export class SettingsTab extends PluginSettingTab {
 				component.setTooltip("Reset to default colour set by theme");
 				component.onClick(async () => {
 					this.settings.defPopoverConfig.backgroundColour = undefined;
-					await this.plugin.saveSettings();
+					await this.saveCallback();
 					this.display();
 				});
 			})
@@ -321,7 +322,7 @@ export class SettingsTab extends PluginSettingTab {
 				}
 				component.onChange(async val => {
 					this.settings.defPopoverConfig.backgroundColour = val;
-					await this.plugin.saveSettings();
+					await this.saveCallback();
 				})
 			});
 	}

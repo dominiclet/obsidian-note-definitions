@@ -1,5 +1,5 @@
 import { getDefFileManager } from "src/core/def-file-manager";
-import { PTreeTraverser } from "./prefix-tree";
+import { PTreeNode, PTreeTraverser } from "./prefix-tree";
 
 // Information of phrase that can be used to add decorations within the editor
 export interface PhraseInfo {
@@ -9,19 +9,24 @@ export interface PhraseInfo {
 }
 
 export class LineScanner {
+	prefixTree: PTreeNode;
+
 	private cnLangRegex = /\p{Script=Han}/u;
 	private terminatingCharRegex = /[!@#$%^&*()\+={}[\]:;"'<>,.?\/|\\\r\n （）＊＋，－／：；＜＝＞＠［＼］＾＿｀｛｜｝～｟｠｢｣､　、〃〈〉《》「」『』【】〔〕〖〗〘〙〚〛〜〝〞〟—‘’‛“”„‟…‧﹏﹑﹔·。]/;
+
+	constructor(pTree?: PTreeNode) {
+		this.prefixTree = pTree ? pTree : getDefFileManager().getPrefixTree();
+	}
 
 
 	scanLine(line: string, offset?: number): PhraseInfo[] {
 		let traversers: PTreeTraverser[] = [];
-		const defManager = getDefFileManager();
 		const phraseInfos: PhraseInfo[] = [];
 
 		for (let i = 0; i < line.length; i++) {
 			const c = line.charAt(i).toLowerCase();
 			if (this.isValidStart(line, i)) {
-				traversers.push(new PTreeTraverser(defManager.getPrefixTree()));
+				traversers.push(new PTreeTraverser(this.prefixTree));
 			}
 
 			traversers.forEach(traverser => {
