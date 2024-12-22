@@ -1,5 +1,5 @@
 import { TFile } from "obsidian";
-import { DefFileType } from "./file-parser";
+import { DefFileType } from "./file-type";
 
 export interface Definition {
 	key: string;
