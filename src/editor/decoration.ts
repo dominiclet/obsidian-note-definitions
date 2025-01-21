@@ -71,7 +71,7 @@ export class DefinitionMarker implements PluginValue {
 // Scan text and return phrases and their positions that require decoration
 export function scanText(text: string, offset: number, pTree?: PTreeNode): PhraseInfo[] {
 	let phraseInfos: PhraseInfo[] = [];
-	const lines = text.split('\n');
+	const lines = text.split(/\r?\n/);
 	let internalOffset = offset;
 	const lineScanner = new LineScanner(pTree);
 

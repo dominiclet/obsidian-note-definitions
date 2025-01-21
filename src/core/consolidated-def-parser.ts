@@ -51,7 +51,7 @@ export class ConsolidatedDefParser extends BaseDefParser {
 	// Parse from string, no dependency on App
 	// For ease of testing
 	directParseFile(fileContent: string) {
-		const lines = fileContent.split('\n');
+		const lines = fileContent.split(/\r?\n/);
 		this.currLine = -1;
 
 		for (const line of lines) {
