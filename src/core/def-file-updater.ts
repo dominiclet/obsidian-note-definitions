@@ -37,7 +37,7 @@ export class DefFileUpdater {
 
 		const fileParser = new FileParser(this.app, file);
 		const defs = await fileParser.parseFile(fileContent);
-		const lines = fileContent.split("\n");
+		const lines = fileContent.split(/\r?\n/);
 
 		const fileDef = defs.find(fileDef => fileDef.key === def.key);
 		if (!fileDef) {
@@ -98,7 +98,7 @@ export class DefFileUpdater {
 			return;
 		}
 		const fileContent = await this.app.vault.read(file);
-		let lines = fileContent.split("\n");
+		let lines = fileContent.split(/\r?\n/);
 		lines = this.removeTrailingBlankNewlines(lines);
 		if (!this.checkEndedWithSeparator(lines)) {
 			this.addSeparator(lines);
