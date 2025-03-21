@@ -33,9 +33,6 @@ export class FMSuggestModal extends FuzzySuggestModal<TAbstractFile> {
 			}
 			
 			fm[DEF_CTX_FM_KEY] = [...currDefSource, path];
-
-			// Reload internals
-			getDefFileManager().updateDefSources([...currDefSource, path]);
 		}).catch(e => {
 			logError(`Error writing to frontmatter of file: ${e}`);
 		});

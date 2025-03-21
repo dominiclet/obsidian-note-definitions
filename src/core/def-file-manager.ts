@@ -89,6 +89,10 @@ export class DefManager {
 	// For manually updating definition sources, as metadata cache may not be the latest updated version
 	updateDefSources(defSource: string[]) {
 		this.resetLocalConfigs();
+
+		if (!defSource || defSource.length === 0) {
+			return;
+		}
 		this.buildLocalPrefixTree(defSource);
 		this.buildLocalDefRepo(defSource);
 		this.shouldUseLocal = true;
