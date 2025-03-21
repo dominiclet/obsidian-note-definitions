@@ -180,7 +180,7 @@ export class DefManager {
 	// Expensive operation so use sparingly
 	loadDefinitions() {
 		this.reset();
-		this.loadGlobals();
+		this.loadGlobals().then(this.updateActiveFile.bind(this));
 	}
 
 	private getDefRepo() {
