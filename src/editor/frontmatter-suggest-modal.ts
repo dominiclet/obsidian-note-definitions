@@ -24,15 +24,14 @@ export class FMSuggestModal extends FuzzySuggestModal<TAbstractFile> {
 		const path = this.getPath(item);
 		this.app.fileManager.processFrontMatter(this.file, (fm) => {
 			let currDefSource = fm[DEF_CTX_FM_KEY];
+
 			if (!currDefSource || !Array.isArray(currDefSource)) {
-				fm[DEF_CTX_FM_KEY] = [path];
-				return;
-			}
-			// Check if file is already added
-			if (currDefSource.includes(path)) {
+				currDefSource = [];
+			} else if (currDefSource.includes(path)) {
 				new Notice("Definition file source is already included for this file");
 				return;
 			}
+			
 			fm[DEF_CTX_FM_KEY] = [...currDefSource, path];
 
 			// Reload internals
