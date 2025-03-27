@@ -43,7 +43,7 @@ export default class NoteDefinition extends Plugin {
 		this.registerCommands();
 		this.registerEvents();
 
-		this.addSettingTab(new SettingsTab(this.app, this, this.saveSettings));
+		this.addSettingTab(new SettingsTab(this.app, this, this.saveSettings.bind(this)));
 		this.registerMarkdownPostProcessor(postProcessor);
 
 		this.fileExplorerDeco.run();
