@@ -26,7 +26,9 @@ export class DefManager {
 
 	activeFile: TFile | null;
 	localPrefixTree: PTreeNode;
-	shouldUseLocalPTree: boolean;
+	shouldUseLocal: boolean;
+
+	localDefs: DefinitionRepo;
 
 	constructor(app: App) {
 		this.app = app;
@@ -35,6 +37,8 @@ export class DefManager {
 		this.globalDefFolders = new Map<string, TFolder>();
 		this.globalPrefixTree = new PTreeNode();
 		this.consolidatedDefFiles = new Map<string, TFile>();
+		this.localDefs = new DefinitionRepo();
+
 		this.resetLocalConfigs()
 		this.lastUpdate = 0;
 		this.markedDirty = [];
@@ -50,7 +54,7 @@ export class DefManager {
 
 	// Get the appropriate prefix tree to use for current active file
 	getPrefixTree() {
-		if (this.shouldUseLocalPTree) {
+		if (this.shouldUseLocal) {
 			return this.localPrefixTree;
 		}
 		return this.globalPrefixTree;
@@ -59,7 +63,8 @@ export class DefManager {
 	// Updates active file and rebuilds local prefix tree if necessary
 	updateActiveFile() {
 		this.activeFile = this.app.workspace.getActiveFile();
-		this.resetLocalConfigs()
+		this.resetLocalConfigs();
+
 		if (this.activeFile) {
 			const metadataCache = this.app.metadataCache.getFileCache(this.activeFile);
 			if (!metadataCache) {
@@ -71,20 +76,26 @@ export class DefManager {
 				return;
 			}
 			if (!Array.isArray(paths)) {
-				logWarn("Unrecognised type for 'def-source' frontmatter");
+				logWarn(`Unrecognised type for '${DEF_CTX_FM_KEY}' frontmatter`);
 				return;
 			}
 			const flattenedPaths = this.flattenPathList(paths);
 			this.buildLocalPrefixTree(flattenedPaths);
-			this.shouldUseLocalPTree = true;
+			this.buildLocalDefRepo(flattenedPaths);
+			this.shouldUseLocal = true;
 		}
 	}
 
 	// For manually updating definition sources, as metadata cache may not be the latest updated version
 	updateDefSources(defSource: string[]) {
 		this.resetLocalConfigs();
+
+		if (!defSource || defSource.length === 0) {
+			return;
+		}
 		this.buildLocalPrefixTree(defSource);
-		this.shouldUseLocalPTree = true;
+		this.buildLocalDefRepo(defSource);
+		this.shouldUseLocal = true;
 	}
 
 	markDirty(file: TFile) {
@@ -148,6 +159,16 @@ export class DefManager {
 		this.localPrefixTree = root;
 	}
 
+	// Expects an array of file paths (not directories)
+	private buildLocalDefRepo(filePaths: string[]) {
+		filePaths.forEach(filePath => {
+			const defMap = this.globalDefs.getMapForFile(filePath);
+			if (defMap) {
+				this.localDefs.fileDefMap.set(filePath, defMap);
+			}
+		});
+	}
+
 	isDefFile(file: TFile): boolean {
 		return file.path.startsWith(this.getGlobalDefFolder())
 	}
@@ -163,11 +184,15 @@ export class DefManager {
 	// Expensive operation so use sparingly
 	loadDefinitions() {
 		this.reset();
-		this.loadGlobals();
+		this.loadGlobals().then(this.updateActiveFile.bind(this));
+	}
+
+	private getDefRepo() {
+		return this.shouldUseLocal ? this.localDefs : this.globalDefs;
 	}
 
 	get(key: string) {
-		return this.globalDefs.get(normaliseWord(key));
+		return this.getDefRepo().get(normaliseWord(key));
 	}
 
 	set(def: Definition) {
@@ -219,7 +244,8 @@ export class DefManager {
 	// Global configs should always be used by default
 	private resetLocalConfigs() {
 		this.localPrefixTree = new PTreeNode();
-		this.shouldUseLocalPTree = false;
+		this.shouldUseLocal = false;
+		this.localDefs.clear();
 	}
 
 	private async loadGlobals() {

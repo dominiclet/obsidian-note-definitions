@@ -29,8 +29,10 @@ export function getMarkedPhrases(): PhraseInfo[] {
 // View plugin to mark definitions
 export class DefinitionMarker implements PluginValue {
 	decorations: DecorationSet;
+	editorView: EditorView;
 
 	constructor(view: EditorView) {
+		this.editorView = view;
 		this.decorations = this.buildDecorations(view);
 	}
 
@@ -42,6 +44,14 @@ export class DefinitionMarker implements PluginValue {
 			logDebug(`Marked definitions in ${end-start}ms`)
 			return
 		}
+	}
+
+	public forceUpdate() {
+		const start = performance.now();
+		this.decorations = this.buildDecorations(this.editorView);
+		const end = performance.now();
+		logDebug(`Marked definitions in ${end - start}ms`)
+		return;
 	}
 
 	destroy() {}
