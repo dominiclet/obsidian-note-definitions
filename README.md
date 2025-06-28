@@ -87,6 +87,8 @@ Example definition file:
 > 
 > Markdown is supported so you can do things like including *italics* or **bold** words.
 
+For a more formal definition of the grammar of the consolidated definition file, you may refer to [this document](docs/grammar.md). 
+
 #### Atomic definition file
 
 An `atomic` definition file refers to a file that contains only one definition.
