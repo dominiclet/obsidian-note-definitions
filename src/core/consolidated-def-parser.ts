@@ -4,21 +4,26 @@ import { DefFileParseConfig } from "src/settings";
 import { DefFileType } from "./file-type";
 import { Definition, FilePosition } from "./model";
 
+interface DocAST {
+    blocks: DefblockAST[];
+}
+
+interface DefblockAST {
+    header: string;
+    aliases: string[];
+    body: string;
+    position: FilePosition;
+}
+
+const EOF = '';
 
 export class ConsolidatedDefParser extends BaseDefParser {
 	app: App;
 	file: TFile;
 	parseSettings: DefFileParseConfig;
 
-	defBuffer: {
-		word?: string;
-		aliases?: string[];
-		definition?: string;
-		filePosition?: Partial<FilePosition>;
-	};
-	inDefinition: boolean;
-	definitions: Definition[];
-
+    fileContent: string;
+    cursor: number;
 	currLine: number;
 
 	constructor(app: App, file: TFile, parseSettings?: DefFileParseConfig) {
@@ -29,9 +34,8 @@ export class ConsolidatedDefParser extends BaseDefParser {
 
 		this.parseSettings = parseSettings ? parseSettings : this.getParseSettings();
 
-		this.defBuffer = {};
-		this.inDefinition = false;
-		this.definitions = [];
+        this.fileContent = '';
+        this.currLine = 0;
 	}
 
 	async parseFile(fileContent?: string): Promise<Definition[]> {
@@ -50,129 +54,160 @@ export class ConsolidatedDefParser extends BaseDefParser {
 
 	// Parse from string, no dependency on App
 	// For ease of testing
-	directParseFile(fileContent: string) {
-		const lines = fileContent.split(/\r?\n/);
-		this.currLine = -1;
-
-		for (const line of lines) {
-			this.currLine++;
-
-			if (this.isEndOfBlock(line)) {
-				if (this.bufferValid()) {
-					this.commitDefBuffer();
-				}
-				this.startNewBlock();
-				continue
-			}
-			if (this.inDefinition) {
-				this.defBuffer.definition += line + "\n";
-				continue
-			}
-
-			// If not within definition, ignore empty lines
-			if (line == "") {
-				continue
-			}
-			if (this.isWordDeclaration(line)) {
-				let from = this.currLine;
-				this.defBuffer.filePosition = {
-					from: from,
-				}
-				this.defBuffer.word = this.extractWordDeclaration(line);
-				continue
-			}
-			if (this.isAliasDeclaration(line)) {
-				this.defBuffer.aliases = this.extractAliases(line);
-				continue
-			}
-			// Begin definition
-			this.inDefinition = true;
-			this.defBuffer.definition = line + "\n";
-		}
-		this.currLine++;
-		if (this.bufferValid()) {
-			this.commitDefBuffer();
-		}
-		return this.definitions;
+	directParseFile(fileContent: string): Definition[] {
+        this.fileContent = fileContent;
+        this.currLine = 0;
+        this.cursor = 0;
+        const doc = this.parseDoc();
+        return doc.blocks.map(blk => this.defBlockToDefinition(blk));
 	}
 
-	private commitDefBuffer() {
-		const aliases = this.defBuffer.aliases ?? [];
-		this.defBuffer.aliases = aliases.concat(this.calculatePlurals([this.defBuffer.word ?? ""].concat(aliases)));
+    private parseDoc(): DocAST {
+        const blocks = [];
+        while (this.cursor < this.fileContent.length) {
+            blocks.push(this.parseDefBlock());
+        }
+        return {
+            blocks
+        };
+    }
 
-		const definition = (this.defBuffer.definition ?? "").trim();
+    private parseDefBlock(): DefblockAST {
+        const posStart = this.currLine;
+        let header = this.parseHeader();
+        let aliases = this.parseAliases();
+        let def = this.parseDef();
+        const posEnd = this.currLine - 1;
+        return {
+            header,
+            aliases,
+            body: def,
+            position: {
+                from: posStart,
+                to: posEnd
+            }
+        };
+    }
 
-		// Register word
-		this.definitions.push({
-			key: this.defBuffer.word?.toLowerCase() ?? "",
-			word: this.defBuffer.word ?? "",
-			aliases: this.defBuffer.aliases ?? [],
-			definition: definition,
-			file: this.file,
-			linkText: `${this.file.path}${this.defBuffer.word ? '#'+this.defBuffer.word : ''}`,
-			fileType: DefFileType.Consolidated,
-			position: {
-				from: this.defBuffer.filePosition?.from ?? 0, 
-				to: this.currLine-1,
-			}
-		});
-		// Register aliases
-		if (this.defBuffer.aliases && this.defBuffer.aliases.length > 0) {
-			this.defBuffer.aliases.forEach(alias => {
-				this.definitions.push({
-					key: alias.toLowerCase(),
-					word: this.defBuffer.word ?? "",
-					aliases: this.defBuffer.aliases ?? [],
-					definition: definition,
-					file: this.file,
-					linkText: `${this.file.path}${this.defBuffer.word ? '#'+this.defBuffer.word : ''}`,
-					fileType: DefFileType.Consolidated,
-					position: {
-						from: this.defBuffer.filePosition?.from ?? 0, 
-						to: this.currLine-1,
-					}
-				});
-			});
-		}
-		this.defBuffer = {};
-	}
+    private parseHeader(): string {
+        // Ignore leading newlines
+        let h;
+        do {
+            h = this.consumeChar();
+        } while (h == "\n")
 
-	private bufferValid(): boolean {
-		return !!this.defBuffer.word;
-	}
+        if (h != "#") {
+            throw new Error(`Parse Header: Unexpected character '${h}', expected '#'`);
+        }
+        let s = this.consumeChar();
+        if (s != " ") {
+            throw new Error(`Parse Header: Unexpected character '${s}', expected SPACE`);
+        }
 
-	private isEndOfBlock(line: string): boolean {
-		if (this.parseSettings.divider.dash && line.startsWith("---")) {
-			return true;
-		}
-		return this.parseSettings.divider.underscore && line.startsWith("___");
-	}
+        let header = [];
+        while (true) {
+            let c = this.consumeChar();
+            if (c == "\n") {
+                break;
+            }
+            header.push(c);
+        }
+        return header.join('')
+    }
 
-	private isAliasDeclaration(line: string): boolean {
-		line = line.trimEnd();
-		return !!this.defBuffer.word && line.startsWith("*") && line.endsWith("*");
-	}
+    private parseAliases(): string[] {
+        let asterisk;
+        do {
+            asterisk = this.consumeChar();
+        } while (asterisk == "\n")
 
-	private extractAliases(line: string): string[] {{
-		line = line.trimEnd().replace(/\*+/g, '');
-		const aliases = line.split(/[,|]/);
+        if (asterisk != "*") {
+            // aliases optional, so backtrack
+            this.spitChar();
+            return [];
+        }
+
+        // Consume until reach ASTERISK
+        let aliasStart = this.cursor;
+        let aliasEnd = aliasStart;
+        while (true) {
+            let c = this.consumeChar();
+            if (c == "\n") {
+                // If we encounter a newline before a '*',
+                // then determine that there is no alias declaration
+                this.cursor = aliasStart - 1;
+                return [];
+            }
+            if (c == "*") {
+                break;
+            }
+            aliasEnd++;
+        }
+        let aliasStr = this.fileContent.slice(aliasStart, aliasEnd);
+		const aliases = aliasStr.split(/[,|]/);
+
+        // Continue consuming until newline (but all chars after the closing ASTERISK are ignored)
+        while (this.consumeChar() != "\n") {}
+
 		return aliases.map(alias => alias.trim())
-	}}
+    }
 
-	private isWordDeclaration(line: string): boolean {
-		return line.startsWith("# ");
-	}
+    private parseDef(): string {
+        let defStr = '';
 
-	private extractWordDeclaration(line: string): string {
-		const sepLine = line.split(" ");
-		if (sepLine.length <= 1) {
-			// Invalid word
-			return "";
-		}
-		return sepLine.slice(1).join(' ');
-	}
+        while (true) {
+            let c = this.consumeChar();
+            if (c === EOF) {
+                // On EOF, treat all preceding chars as definition
+                return defStr;
+            }
+            defStr += c;
+            if (defStr.length >= 5) {
+                if (this.checkDelimiter(defStr.slice(defStr.length-5))) {
+                    return defStr.slice(0, defStr.length-5);
+                }
+            }
+        }
+    }
 
-	private startNewBlock() {
-		this.inDefinition = false;
-	}
+    private checkDelimiter(d: string) {
+        return d === "\n---\n" || d === "\n___\n";
+    }
+
+    // For backtracking, used for optional grammars rules
+    private spitChar(count?: number) {
+        if (!count) {
+            count = 1;
+        }
+        for (let i = 0; i < count; i++) {
+            this.cursor--;
+        }
+    }
+
+    private consumeChar(): string {
+        if (this.cursor >= this.fileContent.length) {
+            return EOF;
+        }
+        const c = this.fileContent[this.cursor++];
+        if (c === "\n") {
+            this.currLine++;
+        }
+        return c;
+    }
+
+    private defBlockToDefinition(blk: DefblockAST): Definition {
+        return {
+            key: blk.header.toLowerCase(),
+            word: blk.header,
+            aliases: blk.aliases.concat(this.calculatePlurals([blk.header].concat(blk.aliases))),
+            definition: blk.body.trim(),
+            file: this.file,
+			linkText: `${this.file.path}${blk.header ? '#' + blk.header : ''}`,
+			fileType: DefFileType.Consolidated,
+            position: {
+                from: blk.position.from,
+                to: blk.position.to
+            }
+        };
+    }
 }
