@@ -1,8 +1,9 @@
-import { Menu, Notice, Plugin, TFolder, WorkspaceWindow } from 'obsidian';
+import { Menu, Notice, Plugin, TFolder, WorkspaceWindow, TFile, MarkdownView } from 'obsidian';
 import { injectGlobals } from './globals';
 import { logDebug } from './util/log';
 import { definitionMarker } from './editor/decoration';
 import { Extension } from '@codemirror/state';
+import { EditorView } from '@codemirror/view';
 import { DefManager, initDefFileManager } from './core/def-file-manager';
 import { Definition } from './core/model';
 import { getDefinitionPopover, initDefinitionPopover } from './editor/definition-popover';
@@ -43,7 +44,7 @@ export default class NoteDefinition extends Plugin {
 		this.registerCommands();
 		this.registerEvents();
 
-		this.addSettingTab(new SettingsTab(this.app, this, this.saveSettings));
+		this.addSettingTab(new SettingsTab(this.app, this, this.saveSettings.bind(this)));
 		this.registerMarkdownPostProcessor(postProcessor);
 
 		this.fileExplorerDeco.run();
@@ -196,6 +197,26 @@ export default class NoteDefinition extends Plugin {
 			if (file.path.startsWith(settings.defFolder)) {
 				this.fileExplorerDeco.run();
 				this.refreshDefinitions();
+			}
+		}));
+
+		this.registerEvent(this.app.metadataCache.on('changed', (file: TFile) => {
+			const currFile = this.app.workspace.getActiveFile();
+			
+			if (currFile && currFile.path === file.path) {
+				this.defManager.updateActiveFile();
+
+				let activeView = this.app.workspace.getActiveViewOfType(MarkdownView);
+
+				if(activeView) {
+					// @ts-expect-error, not typed
+					const view = activeView.editor.cm as EditorView;
+					const plugin = view.plugin(definitionMarker);
+					
+					if (plugin) {
+						plugin.forceUpdate();
+					}
+				}
 			}
 		}));
 	}
