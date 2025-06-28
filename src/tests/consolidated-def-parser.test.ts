@@ -52,19 +52,19 @@ test('Positions are parsed correctly', () => {
 	expect(definitions.find(def => def.key === "first")?.position?.from).
 		toBe(0);
 	expect(definitions.find(def => def.key === "first")?.position?.to).
-		toBe(3);
+		toBe(4);
 	expect(definitions.find(def => def.key === "multiple-word definition")?.position?.from).
-		toBe(6);
+		toBe(5);
 	expect(definitions.find(def => def.key === "multiple-word definition")?.position?.to).
-		toBe(9);
+		toBe(10);
 	expect(definitions.find(def => def.key === "alias definition")?.position?.from).
-		toBe(12);
+		toBe(11);
 	expect(definitions.find(def => def.key === "alias definition")?.position?.to).
-		toBe(17);
+		toBe(18);
 	expect(definitions.find(def => def.key === "markdown support")?.position?.from).
-		toBe(20);
+		toBe(19);
 	expect(definitions.find(def => def.key === "markdown support")?.position?.to).
-		toBe(23);
+		toBe(22);
 });
 
 test('Aliases are parsed correctly', () => {

@@ -141,9 +141,13 @@ export class DefFileUpdater {
 
 	private replaceDefinition(position: FilePosition, def: Definition, lines: string[]) {
 		const before = lines.slice(0, position.from);
-		const after = lines.slice(position.to+1);
+		const after = lines.slice(position.to);
 		const newLines = this.constructLinesFromDef(def);
-		return before.concat(newLines, after)
+		return before.concat(newLines, this.isSeparator(lines[position.to]) ? after : []);
+	}
+
+	private isSeparator(line: string): boolean {
+		return line === '---' || line === '___';
 	}
 
 	private constructLinesFromDef(def: Partial<Definition>): string[] {
