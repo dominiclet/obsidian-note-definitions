@@ -37,6 +37,7 @@ export interface Settings {
 	enableInReadingView: boolean;
 	enableSpellcheck: boolean;
 	defFolder: string;
+	includeMarkdownFilesOnly: boolean;
 	popoverEvent: PopoverEventSettings;
 	defFileParseConfig: DefFileParseConfig;
 	defPopoverConfig: DefinitionPopoverConfig;
@@ -47,6 +48,7 @@ export const DEFAULT_DEF_FOLDER = "definitions"
 export const DEFAULT_SETTINGS: Partial<Settings> = {
 	enableInReadingView: true,
 	enableSpellcheck: true,
+	includeMarkdownFilesOnly: false,
 	popoverEvent: PopoverEventSettings.Hover,
 	defFileParseConfig: {
 		defaultFileType: DefFileType.Consolidated,
@@ -118,6 +120,18 @@ export class SettingsTab extends PluginSettingTab {
 						delay: 100
 					});
 			});
+
+		new Setting(containerEl)
+			.setName("Include only markdown files in the definitions folder")
+			.setDesc("When enabled, only .md files in the definitions folder will be parsed.")
+			.addToggle((component) => {
+				component.setValue(this.settings.includeMarkdownFilesOnly);
+				component.onChange(async (val) => {
+					this.settings.includeMarkdownFilesOnly = val;
+					await this.saveCallback();
+				});
+			});
+
 		new Setting(containerEl)
 			.setName("Definition file format settings")
 			.setDesc("Customise parsing rules for definition files")

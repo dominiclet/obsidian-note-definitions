@@ -59,7 +59,7 @@ export class FileExplorerDecoration {
 				return;
 			}
 
-			if (k.startsWith(defFolder)) {
+			if (k.startsWith(defFolder) && (!settings.includeMarkdownFilesOnly || k.endsWith(".md"))) {
 				this.tagFile(fileExpView, k, "DEF");
 			}
 		});

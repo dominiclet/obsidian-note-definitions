@@ -170,7 +170,7 @@ export class DefManager {
 	}
 
 	isDefFile(file: TFile): boolean {
-		return file.path.startsWith(this.getGlobalDefFolder())
+		return file.path.startsWith(this.getGlobalDefFolder()) && (!window.NoteDefinition.settings.includeMarkdownFilesOnly || file.path.endsWith(".md"));
 	}
 
 	reset() {
@@ -289,7 +289,7 @@ export class DefManager {
 			if (f instanceof TFolder) {
 				let defs = await this.parseFolder(f);
 				definitions.push(...defs);
-			} else if (f instanceof TFile) {
+			} else if (f instanceof TFile && this.isDefFile(f)) {
 				let defs = await this.parseFile(f);
 				definitions.push(...defs);
 			}
