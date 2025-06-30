@@ -42,6 +42,8 @@ export interface Settings {
 	defPopoverConfig: DefinitionPopoverConfig;
 }
 
+export const VALID_DEFINITION_FILE_TYPES = [ ".md" ]
+
 export const DEFAULT_DEF_FOLDER = "definitions"
 
 export const DEFAULT_SETTINGS: Partial<Settings> = {
@@ -118,6 +120,7 @@ export class SettingsTab extends PluginSettingTab {
 						delay: 100
 					});
 			});
+
 		new Setting(containerEl)
 			.setName("Definition file format settings")
 			.setDesc("Customise parsing rules for definition files")

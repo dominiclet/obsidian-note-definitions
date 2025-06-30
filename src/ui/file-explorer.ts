@@ -1,5 +1,5 @@
 import { App } from "obsidian";
-import { DEFAULT_DEF_FOLDER, getSettings } from "src/settings";
+import { DEFAULT_DEF_FOLDER, getSettings, VALID_DEFINITION_FILE_TYPES } from "src/settings";
 import { FileExplorerView } from "src/types/obsidian";
 import { logDebug, logError } from "src/util/log";
 
@@ -59,7 +59,7 @@ export class FileExplorerDecoration {
 				return;
 			}
 
-			if (k.startsWith(defFolder)) {
+			if (k.startsWith(defFolder) && VALID_DEFINITION_FILE_TYPES.some(ext => k.endsWith(ext))) {
 				this.tagFile(fileExpView, k, "DEF");
 			}
 		});

@@ -1,6 +1,6 @@
 import { App, TFile, TFolder } from "obsidian";
 import { PTreeNode } from "src/editor/prefix-tree";
-import { DEFAULT_DEF_FOLDER } from "src/settings";
+import { DEFAULT_DEF_FOLDER, VALID_DEFINITION_FILE_TYPES } from "src/settings";
 import { normaliseWord } from "src/util/editor";
 import { logDebug, logWarn } from "src/util/log";
 import { useRetry } from "src/util/retry";
@@ -170,7 +170,7 @@ export class DefManager {
 	}
 
 	isDefFile(file: TFile): boolean {
-		return file.path.startsWith(this.getGlobalDefFolder())
+		return file.path.startsWith(this.getGlobalDefFolder()) && VALID_DEFINITION_FILE_TYPES.some(ext => file.path.endsWith(ext));
 	}
 
 	reset() {
@@ -289,7 +289,7 @@ export class DefManager {
 			if (f instanceof TFolder) {
 				let defs = await this.parseFolder(f);
 				definitions.push(...defs);
-			} else if (f instanceof TFile) {
+			} else if (f instanceof TFile && this.isDefFile(f)) {
 				let defs = await this.parseFile(f);
 				definitions.push(...defs);
 			}
