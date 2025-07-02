@@ -1,5 +1,6 @@
-import { App, TFile } from "obsidian";
+import { App, CachedMetadata, TFile } from "obsidian";
 import { getSettings } from "src/settings";
+import { useRetry } from "src/util/retry";
 import { AtomicDefParser } from "./atomic-def-parser";
 import { ConsolidatedDefParser } from "./consolidated-def-parser";
 import { DefFileType } from "./file-type";
@@ -20,7 +21,7 @@ export class FileParser {
 	// Optional argument used when file cache may not be updated
 	// and we know the new contents of the file
 	async parseFile(fileContent?: string): Promise<Definition[]> {
-		this.defFileType = this.getDefFileType();
+		this.defFileType = await this.getDefFileType();
 
 		switch (this.defFileType) {
 			case DefFileType.Consolidated:
@@ -32,10 +33,19 @@ export class FileParser {
 		}
 	}
 
-	private getDefFileType(): DefFileType {
-		const fileCache = this.app.metadataCache.getFileCache(this.file);
+	private async getDefFileType(): Promise<DefFileType> {
+		let fileCache: CachedMetadata | null = null;
+		// fileCache may return nil at on Obsidian startup. Obsidian likely needs some time to warm up the cache
+		const retry = useRetry();
+		await retry.exec(() => {
+			fileCache = this.app.metadataCache.getFileCache(this.file);
+			if (!fileCache) {
+				retry.setShouldRetry();
+			}
+		});
+		// @ts-ignore: fileCache should be set in the closure above
 		const fmFileType = fileCache?.frontmatter?.[DEF_TYPE_FM];
-		if (fmFileType && 
+		if (fmFileType &&
 			(fmFileType === DefFileType.Consolidated || fmFileType === DefFileType.Atomic)) {
 			return fmFileType;
 		}

@@ -97,11 +97,11 @@ export class ConsolidatedDefParser extends BaseDefParser {
         } while (h == "\n")
 
         if (h != "#") {
-            throw new Error(`Parse Header: Unexpected character '${h}', expected '#'`);
+            throw new Error(`Parse Header for ${this.file.path}: Unexpected character '${h}', expected '#'`);
         }
         let s = this.consumeChar();
         if (s != " ") {
-            throw new Error(`Parse Header: Unexpected character '${s}', expected SPACE`);
+            throw new Error(`Parse Header for ${this.file.path}: Unexpected character '${s}', expected SPACE`);
         }
 
         let header = [];
