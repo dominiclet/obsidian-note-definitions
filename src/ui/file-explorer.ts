@@ -1,7 +1,7 @@
 import { App } from "obsidian";
 import { DEFAULT_DEF_FOLDER, getSettings, VALID_DEFINITION_FILE_TYPES } from "src/settings";
 import { FileExplorerView } from "src/types/obsidian";
-import { logDebug, logError } from "src/util/log";
+import { logDebug } from "src/util/log";
 
 let fileExplorerDecoration: FileExplorerDecoration;
 
@@ -26,7 +26,7 @@ export class FileExplorerDecoration {
 			try {
 				this.exec();
 			} catch (e) {
-				logError(e);
+				logDebug(e);
 				this.retryCount++;
 				await sleep(RETRY_INTERVAL);
 				continue;
@@ -37,6 +37,10 @@ export class FileExplorerDecoration {
 
 	private exec() {
 		const fileExplorer = this.app.workspace.getLeavesOfType('file-explorer')[0];
+		if (!fileExplorer) {
+			// This is an expected behaviour, likely due to
+			throw new Error("app.workspace.getLeavesOfType('file-explorer') returned undefined (file explorer may not be available in view yet)");
+		}
 		const fileExpView = fileExplorer.view as FileExplorerView;
 
 		const settings = getSettings();
