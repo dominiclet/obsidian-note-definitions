@@ -65,6 +65,9 @@ export class AddDefinitionModal {
 				defFiles.forEach((file) => {
 					component.addOption(file.path, file.path);
 				});
+				if (defFiles.length > 0) {
+					component.setValue(defFiles[0].path);
+				}
 				this.defFilePicker = component;
 			});
 
@@ -75,6 +78,9 @@ export class AddDefinitionModal {
 				defFolders.forEach((folder) => {
 					component.addOption(folder.path, folder.path + "/");
 				});
+				if (defFolders.length > 0) {
+					component.setValue(defFolders[0].path);
+				}
 				this.atomicFolderPicker = component;
 			});
 
@@ -114,18 +120,37 @@ export class AddDefinitionModal {
 				new Notice("Please fill in a definition value");
 				return;
 			}
-			if (!this.defFilePicker.getValue()) {
-				new Notice(
-					"Please choose a definition file. If you do not have any definition files, please create one.",
-				);
+
+			const fileType = this.fileTypePicker.getValue();
+			let selectedPath = "";
+			let definitionFile;
+
+			if (fileType === DefFileType.Consolidated) {
+				selectedPath = this.defFilePicker.getValue();
+				if (!selectedPath) {
+					new Notice(
+						"Please choose a definition file. If you do not have any definition files, please create one.",
+					);
+					return;
+				}
+				const defFileManager = getDefFileManager();
+				definitionFile =
+					defFileManager.globalDefFiles.get(selectedPath);
+			} else if (fileType === DefFileType.Atomic) {
+				selectedPath = this.atomicFolderPicker.getValue();
+				if (!selectedPath) {
+					new Notice(
+						"Please choose a folder for the atomic definition.",
+					);
+					return;
+				}
+				definitionFile = undefined;
+			} else {
+				new Notice("Invalid file type selected.");
 				return;
 			}
-			const defFileManager = getDefFileManager();
-			const definitionFile = defFileManager.globalDefFiles.get(
-				this.defFilePicker.getValue(),
-			);
+
 			const updated = new DefFileUpdater(this.app);
-			const fileType = this.fileTypePicker.getValue();
 			updated.addDefinition(
 				{
 					fileType: fileType as DefFileType,
@@ -139,7 +164,7 @@ export class AddDefinitionModal {
 					definition: defText.value,
 					file: definitionFile,
 				},
-				this.atomicFolderPicker.getValue(),
+				selectedPath,
 			);
 			this.modal.close();
 		});
