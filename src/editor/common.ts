@@ -1,15 +1,16 @@
 import { Platform } from "obsidian";
 import { getSettings, PopoverEventSettings } from "src/settings";
 
-const triggerFunc = 'event.stopPropagation();activeWindow.NoteDefinition.triggerDefPreview(this);';
+const triggerFunc =
+	"event.stopPropagation();activeWindow.NoteDefinition.triggerDefPreview(this);";
 
 export const DEF_DECORATION_CLS = "def-decoration";
 
 // For normal decoration of definitions
 export function getDecorationAttrs(phrase: string): { [key: string]: string } {
-	let attributes: { [key: string]: string } = {
+	const attributes: { [key: string]: string } = {
 		def: phrase,
-	}
+	};
 	const settings = getSettings();
 	if (Platform.isMobile) {
 		attributes.onclick = triggerFunc;
@@ -25,4 +26,3 @@ export function getDecorationAttrs(phrase: string): { [key: string]: string } {
 	}
 	return attributes;
 }
-
