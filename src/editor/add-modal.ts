@@ -3,7 +3,6 @@ import { getDefFileManager } from "src/core/def-file-manager";
 import { DefFileUpdater } from "src/core/def-file-updater";
 import { DefFileType } from "src/core/file-type";
 
-
 export class AddDefinitionModal {
 	app: App;
 	modal: Modal;
@@ -28,59 +27,42 @@ export class AddDefinitionModal {
 		this.modal.setTitle("Add Definition");
 		this.modal.contentEl.createDiv({
 			cls: "edit-modal-section-header",
-			text: "Word/Phrase"
-		})
+			text: "Word/Phrase",
+		});
 		const phraseText = this.modal.contentEl.createEl("textarea", {
-			cls: 'edit-modal-aliases',
+			cls: "edit-modal-aliases",
 			attr: {
-				placeholder: "Word/phrase to be defined"
+				placeholder: "Word/phrase to be defined",
 			},
-			text: text ?? ''
+			text: text ?? "",
 		});
 		this.modal.contentEl.createDiv({
 			cls: "edit-modal-section-header",
-			text: "Aliases"
-		})
+			text: "Aliases",
+		});
 		const aliasText = this.modal.contentEl.createEl("textarea", {
-			cls: 'edit-modal-aliases',
+			cls: "edit-modal-aliases",
 			attr: {
-				placeholder: "Add comma-separated aliases here"
+				placeholder: "Add comma-separated aliases here",
 			},
 		});
 		this.modal.contentEl.createDiv({
 			cls: "edit-modal-section-header",
-			text: "Definition"
+			text: "Definition",
 		});
 		const defText = this.modal.contentEl.createEl("textarea", {
-			cls: 'edit-modal-textarea',
+			cls: "edit-modal-textarea",
 			attr: {
-				placeholder: "Add definition here"
+				placeholder: "Add definition here",
 			},
 		});
-
-		new Setting(this.modal.contentEl)
-			.setName("Definition file type")
-			.addDropdown(component => {
-				component.addOption(DefFileType.Consolidated, "Consolidated");
-				component.addOption(DefFileType.Atomic, "Atomic");
-				component.onChange(val => {
-					if (val === DefFileType.Consolidated) {
-						this.atomicFolderPickerSetting.settingEl.hide();
-						this.defFilePickerSetting.settingEl.show();
-					} else if (val === DefFileType.Atomic) {
-						this.defFilePickerSetting.settingEl.hide();
-						this.atomicFolderPickerSetting.settingEl.show();
-					}
-				});
-				this.fileTypePicker = component;
-			});
 
 		const defManager = getDefFileManager();
 		this.defFilePickerSetting = new Setting(this.modal.contentEl)
 			.setName("Definition file")
-			.addDropdown(component => {
+			.addDropdown((component) => {
 				const defFiles = defManager.getConsolidatedDefFiles();
-				defFiles.forEach(file => {
+				defFiles.forEach((file) => {
 					component.addOption(file.path, file.path);
 				});
 				this.defFilePicker = component;
@@ -88,20 +70,43 @@ export class AddDefinitionModal {
 
 		this.atomicFolderPickerSetting = new Setting(this.modal.contentEl)
 			.setName("Add file to folder")
-			.addDropdown(component => {
+			.addDropdown((component) => {
 				const defFolders = defManager.getDefFolders();
-				defFolders.forEach(folder => {
+				defFolders.forEach((folder) => {
 					component.addOption(folder.path, folder.path + "/");
 				});
 				this.atomicFolderPicker = component;
 			});
-		this.atomicFolderPickerSetting.settingEl.hide();
+
+		new Setting(this.modal.contentEl)
+			.setName("Definition file type")
+			.addDropdown((component) => {
+				const handleDefFileTypeChange = (val: string) => {
+					if (val === DefFileType.Consolidated) {
+						this.atomicFolderPickerSetting.settingEl.hide();
+						this.defFilePickerSetting.settingEl.show();
+					} else if (val === DefFileType.Atomic) {
+						this.defFilePickerSetting.settingEl.hide();
+						this.atomicFolderPickerSetting.settingEl.show();
+					}
+				};
+
+				component.addOption(DefFileType.Consolidated, "Consolidated");
+				component.addOption(DefFileType.Atomic, "Atomic");
+				component.setValue(
+					window.NoteDefinition.settings.defFileParseConfig
+						.defaultFileType,
+				);
+				component.onChange(handleDefFileTypeChange);
+				handleDefFileTypeChange(component.getValue());
+				this.fileTypePicker = component;
+			});
 
 		const button = this.modal.contentEl.createEl("button", {
 			text: "Save",
-			cls: 'edit-modal-save-button',
+			cls: "edit-modal-save-button",
 		});
-		button.addEventListener('click', () => {
+		button.addEventListener("click", () => {
 			if (this.submitting) {
 				return;
 			}
@@ -110,21 +115,32 @@ export class AddDefinitionModal {
 				return;
 			}
 			if (!this.defFilePicker.getValue()) {
-				new Notice("Please choose a definition file. If you do not have any definition files, please create one.")
+				new Notice(
+					"Please choose a definition file. If you do not have any definition files, please create one.",
+				);
 				return;
 			}
 			const defFileManager = getDefFileManager();
-			const definitionFile = defFileManager.globalDefFiles.get(this.defFilePicker.getValue());
+			const definitionFile = defFileManager.globalDefFiles.get(
+				this.defFilePicker.getValue(),
+			);
 			const updated = new DefFileUpdater(this.app);
 			const fileType = this.fileTypePicker.getValue();
-			updated.addDefinition({
-				fileType: fileType as DefFileType,
-				key: phraseText.value.toLowerCase(),
-				word: phraseText.value,
-				aliases: aliasText.value? aliasText.value.split(",").map(alias => alias.trim()) : [],
-				definition: defText.value,
-				file: definitionFile,
-			}, this.atomicFolderPicker.getValue());
+			updated.addDefinition(
+				{
+					fileType: fileType as DefFileType,
+					key: phraseText.value.toLowerCase(),
+					word: phraseText.value,
+					aliases: aliasText.value
+						? aliasText.value
+								.split(",")
+								.map((alias) => alias.trim())
+						: [],
+					definition: defText.value,
+					file: definitionFile,
+				},
+				this.atomicFolderPicker.getValue(),
+			);
 			this.modal.close();
 		});
 
