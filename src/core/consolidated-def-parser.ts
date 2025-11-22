@@ -43,23 +43,27 @@ export class ConsolidatedDefParser extends BaseDefParser {
 			fileContent = await this.app.vault.cachedRead(this.file);
 		}
 
-		// Ignore frontmatter (properties)
+		// Get frontmatter for display settings
 		const fileMetadata = this.app.metadataCache.getFileCache(this.file);
+		const fmData = fileMetadata?.frontmatter;
+		const displayMode = fmData?.["display-mode"];
+		const highlightStyle = fmData?.["highlight-style"];
+
 		const fmPos = fileMetadata?.frontmatterPosition;
 		if (fmPos) {
 			fileContent = fileContent.slice(fmPos.end.offset+1);
 		}
-		return this.directParseFile(fileContent);
+		return this.directParseFile(fileContent, displayMode, highlightStyle);
 	}
 
 	// Parse from string, no dependency on App
 	// For ease of testing
-	directParseFile(fileContent: string): Definition[] {
+	directParseFile(fileContent: string, displayMode?: string, highlightStyle?: string): Definition[] {
         this.fileContent = fileContent;
         this.currLine = 0;
         this.cursor = 0;
         const doc = this.parseDoc();
-        return doc.blocks.map(blk => this.defBlockToDefinition(blk));
+        return doc.blocks.map(blk => this.defBlockToDefinition(blk, displayMode, highlightStyle));
 	}
 
     private parseDoc(): DocAST {
@@ -195,8 +199,8 @@ export class ConsolidatedDefParser extends BaseDefParser {
         return c;
     }
 
-    private defBlockToDefinition(blk: DefblockAST): Definition {
-        return {
+    private defBlockToDefinition(blk: DefblockAST, displayMode?: string, highlightStyle?: string): Definition {
+        const def: Definition = {
             key: blk.header.toLowerCase(),
             word: blk.header,
             aliases: blk.aliases.concat(this.calculatePlurals([blk.header].concat(blk.aliases))),
@@ -209,5 +213,15 @@ export class ConsolidatedDefParser extends BaseDefParser {
                 to: blk.position.to
             }
         };
+
+        // Add optional display settings from frontmatter
+        if (displayMode === 'first-only' || displayMode === 'all-occurrences') {
+            def.displayMode = displayMode;
+        }
+        if (highlightStyle === 'box' || highlightStyle === 'underline') {
+            def.highlightStyle = highlightStyle;
+        }
+
+        return def;
     }
 }

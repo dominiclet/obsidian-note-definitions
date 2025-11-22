@@ -238,6 +238,35 @@ export default class NoteDefinition extends Plugin {
 					editModal.open(def);
 				});
 		});
+
+		// Add mark as known/unknown option
+		const settings = getSettings();
+		const isKnown = settings.knownWords.includes(def.key);
+
+		menu.addItem(item => {
+			if (isKnown) {
+				item.setTitle("Mark as unknown")
+					.setIcon("eye")
+					.onClick(async () => {
+						const index = settings.knownWords.indexOf(def.key);
+						if (index > -1) {
+							settings.knownWords.splice(index, 1);
+							await this.saveSettings();
+							new Notice(`"${def.word}" marked as unknown`);
+						}
+					});
+			} else {
+				item.setTitle("Mark as known")
+					.setIcon("eye-off")
+					.onClick(async () => {
+						if (!settings.knownWords.includes(def.key)) {
+							settings.knownWords.push(def.key);
+							await this.saveSettings();
+							new Notice(`"${def.word}" marked as known`);
+						}
+					});
+			}
+		});
 	}
 
 	refreshDefinitions() {

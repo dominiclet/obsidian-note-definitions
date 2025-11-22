@@ -1,6 +1,9 @@
 import { TFile } from "obsidian";
 import { DefFileType } from "./file-type";
 
+export type DisplayMode = 'first-only' | 'all-occurrences';
+export type HighlightStyle = 'box' | 'underline';
+
 export interface Definition {
 	key: string;
 	word: string;
@@ -10,6 +13,8 @@ export interface Definition {
 	linkText: string;
 	fileType: DefFileType;
 	position?: FilePosition;
+	displayMode?: DisplayMode;
+	highlightStyle?: HighlightStyle;
 }
 
 export interface FilePosition {

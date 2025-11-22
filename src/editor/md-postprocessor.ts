@@ -50,13 +50,50 @@ const rebuildHTML = (parent: Node, isPopupCtx: boolean) => {
 			phraseInfos.sort((a, b) => b.to - a.to);
 			phraseInfos.sort((a, b) => a.from - b.from);
 
+			// Filter based on known words and first-occurrence mode
+			const settings = getSettings();
+			const defManager = getDefFileManager();
+			const filteredPhraseInfos: PhraseInfo[] = [];
+
+			phraseInfos.forEach(phraseInfo => {
+				const def = defManager.get(phraseInfo.phrase);
+				if (!def) return;
+
+				// Skip if word is in known words list
+				if (settings.knownWords.includes(def.key)) {
+					return;
+				}
+
+				// Check first-occurrence mode
+				if (def.displayMode === 'first-only') {
+					const tracking = settings.firstOccurrenceTracking[def.key];
+					if (tracking) {
+						// Already shown before, skip it
+						return;
+					} else {
+						// First occurrence! Track it
+						const activeFile = window.NoteDefinition.app.workspace.getActiveFile();
+						settings.firstOccurrenceTracking[def.key] = {
+							file: activeFile?.path || '',
+							position: phraseInfo.from
+						};
+					}
+				}
+
+				filteredPhraseInfos.push(phraseInfo);
+			});
+
+			if (filteredPhraseInfos.length === 0) {
+				continue;
+			}
+
 			let currCursor = 0;
 			const newContainer = parent.createSpan();
 			const addedMarks: Marks[] = [];
 
 			const popoverSettings = getSettings().defPopoverConfig;
 
-			phraseInfos.forEach(phraseInfo => {
+			filteredPhraseInfos.forEach(phraseInfo => {
 				if (phraseInfo.from < currCursor) {
 					// Subset or intersect phrases are ignored
 					return;
@@ -89,8 +126,16 @@ const rebuildHTML = (parent: Node, isPopupCtx: boolean) => {
 
 function getNormalDecorationSpan(container: HTMLElement, phraseInfo: PhraseInfo, currText: string): HTMLSpanElement {
 	const attributes = getDecorationAttrs(phraseInfo.phrase);
+
+	// Determine CSS class based on highlight style
+	const def = getDefFileManager().get(phraseInfo.phrase);
+	let cssClass = DEF_DECORATION_CLS;
+	if (def?.highlightStyle === 'box') {
+		cssClass = 'def-decoration-box';
+	}
+
 	const span = container.createSpan({
-		cls: DEF_DECORATION_CLS,
+		cls: cssClass,
 		attr: attributes,
 		text: currText.slice(phraseInfo.from, phraseInfo.to),
 	});

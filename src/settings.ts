@@ -33,6 +33,11 @@ export interface DefinitionPopoverConfig {
 	backgroundColour?: string;
 }
 
+export interface FirstOccurrenceInfo {
+	file: string;
+	position: number;
+}
+
 export interface Settings {
 	enableInReadingView: boolean;
 	enableSpellcheck: boolean;
@@ -40,6 +45,8 @@ export interface Settings {
 	popoverEvent: PopoverEventSettings;
 	defFileParseConfig: DefFileParseConfig;
 	defPopoverConfig: DefinitionPopoverConfig;
+	knownWords: string[];
+	firstOccurrenceTracking: Record<string, FirstOccurrenceInfo>;
 }
 
 export const VALID_DEFINITION_FILE_TYPES = [ ".md" ]
@@ -66,7 +73,9 @@ export const DEFAULT_SETTINGS: Partial<Settings> = {
 		maxHeight: 150,
 		popoverDismissEvent: PopoverDismissType.Click,
 		enableDefinitionLink: false,
-	}
+	},
+	knownWords: [],
+	firstOccurrenceTracking: {}
 }
 
 export class SettingsTab extends PluginSettingTab {
@@ -328,6 +337,85 @@ export class SettingsTab extends PluginSettingTab {
 					await this.saveCallback();
 				})
 			});
+
+		new Setting(containerEl)
+			.setHeading()
+			.setName("Known Words");
+
+		new Setting(containerEl)
+			.setName("Manage known words")
+			.setDesc("Words you've marked as 'known' will not be highlighted. Right-click on any highlighted word to mark it as known or unknown.")
+			.addExtraButton(component => {
+				component.setIcon("list");
+				component.setTooltip("View and manage known words");
+				component.onClick(() => {
+					const modal = new Modal(this.app);
+					modal.setTitle("Known Words");
+
+					const description = modal.contentEl.createEl("p", {
+						text: "These words have been marked as known and will not be highlighted. Click the X to remove a word from this list."
+					});
+					description.style.marginBottom = "1em";
+
+					if (this.settings.knownWords.length === 0) {
+						modal.contentEl.createEl("p", {
+							text: "No known words yet. Right-click on any highlighted word in your notes to mark it as known.",
+							cls: "mod-muted"
+						});
+					} else {
+						const listContainer = modal.contentEl.createDiv({ cls: "known-words-list" });
+						listContainer.style.maxHeight = "400px";
+						listContainer.style.overflowY = "auto";
+						listContainer.style.border = "1px solid var(--background-modifier-border)";
+						listContainer.style.borderRadius = "4px";
+						listContainer.style.padding = "0.5em";
+
+						this.settings.knownWords.forEach((word, index) => {
+							const wordItem = listContainer.createDiv({ cls: "known-word-item" });
+							wordItem.style.display = "flex";
+							wordItem.style.justifyContent = "space-between";
+							wordItem.style.alignItems = "center";
+							wordItem.style.padding = "0.25em 0.5em";
+							wordItem.style.marginBottom = "0.25em";
+							wordItem.style.borderRadius = "4px";
+							wordItem.style.backgroundColor = "var(--background-secondary)";
+
+							const wordText = wordItem.createSpan({ text: word });
+							wordText.style.flex = "1";
+
+							const removeBtn = wordItem.createEl("button", { text: "×" });
+							removeBtn.style.cursor = "pointer";
+							removeBtn.style.padding = "0 0.5em";
+							removeBtn.style.fontSize = "1.5em";
+							removeBtn.style.border = "none";
+							removeBtn.style.background = "transparent";
+							removeBtn.style.color = "var(--text-muted)";
+							removeBtn.addEventListener("click", async () => {
+								this.settings.knownWords.splice(index, 1);
+								await this.saveCallback();
+								wordItem.remove();
+								new Notice("Word removed from known words list");
+							});
+						});
+
+						const clearAllBtn = modal.contentEl.createEl("button", { text: "Clear all known words" });
+						clearAllBtn.style.marginTop = "1em";
+						clearAllBtn.style.width = "100%";
+						clearAllBtn.addEventListener("click", async () => {
+							this.settings.knownWords = [];
+							await this.saveCallback();
+							modal.close();
+							new Notice("All known words cleared");
+						});
+					}
+
+					modal.open();
+				});
+			});
+
+		new Setting(containerEl)
+			.setName("First occurrence tracking")
+			.setDesc("When a word's definition file has 'display-mode: first-only' in its frontmatter, the word will only be highlighted on its first occurrence in your vault. Note: If you read documents out of order, the first occurrence may not be where you expect. You can mark words as 'known' to hide them completely.");
 	}
 }
 
