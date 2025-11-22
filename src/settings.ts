@@ -384,6 +384,42 @@ export class SettingsTab extends PluginSettingTab {
 					new Notice("First occurrence tracking data cleared");
 				});
 			});
+
+		new Setting(containerEl)
+			.setHeading()
+			.setName("Analytics Dashboards");
+
+		new Setting(containerEl)
+			.setName("Math Translation Dashboard")
+			.setDesc("Generate a comprehensive analysis of mathematical symbols and equations used across your vault.")
+			.addButton(component => {
+				component.setButtonText("Generate Dashboard");
+				component.setCta();
+				component.onClick(async () => {
+					const plugin = window.NoteDefinition.plugin as any;
+					if (plugin && plugin.generateMathDashboard) {
+						await plugin.generateMathDashboard();
+					} else {
+						new Notice("Error: Plugin not loaded correctly");
+					}
+				});
+			});
+
+		new Setting(containerEl)
+			.setName("Theory Integration Dashboard")
+			.setDesc("Track references to 80+ frameworks across Physics, Theology, Mathematics, and Consciousness studies.")
+			.addButton(component => {
+				component.setButtonText("Generate Dashboard");
+				component.setCta();
+				component.onClick(async () => {
+					const plugin = window.NoteDefinition.plugin as any;
+					if (plugin && plugin.generateTheoryDashboard) {
+						await plugin.generateTheoryDashboard();
+					} else {
+						new Notice("Error: Plugin not loaded correctly");
+					}
+				});
+			});
 	}
 }
 
