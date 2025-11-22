@@ -2,7 +2,7 @@ import { App, TFile } from "obsidian";
 import { BaseDefParser } from "src/core/base-def-parser";
 import { DefFileParseConfig } from "src/settings";
 import { DefFileType } from "./file-type";
-import { Definition, FilePosition } from "./model";
+import { Definition, DisplayMode, FilePosition, HighlightStyle } from "./model";
 
 interface DocAST {
     blocks: DefblockAST[];
@@ -25,6 +25,8 @@ export class ConsolidatedDefParser extends BaseDefParser {
     fileContent: string;
     cursor: number;
 	currLine: number;
+	displayMode?: DisplayMode;
+	highlightStyle?: HighlightStyle;
 
 	constructor(app: App, file: TFile, parseSettings?: DefFileParseConfig) {
 		super(parseSettings);
@@ -43,8 +45,24 @@ export class ConsolidatedDefParser extends BaseDefParser {
 			fileContent = await this.app.vault.cachedRead(this.file);
 		}
 
-		// Ignore frontmatter (properties)
+		// Extract frontmatter values for display-mode and highlight-style
 		const fileMetadata = this.app.metadataCache.getFileCache(this.file);
+		const fmData = fileMetadata?.frontmatter;
+		if (fmData) {
+			// Parse display-mode from frontmatter
+			const fmDisplayMode = fmData["display-mode"];
+			if (fmDisplayMode === DisplayMode.FirstOnly || fmDisplayMode === DisplayMode.AllOccurrences) {
+				this.displayMode = fmDisplayMode;
+			}
+
+			// Parse highlight-style from frontmatter
+			const fmHighlightStyle = fmData["highlight-style"];
+			if (fmHighlightStyle === HighlightStyle.Underline || fmHighlightStyle === HighlightStyle.Box) {
+				this.highlightStyle = fmHighlightStyle;
+			}
+		}
+
+		// Ignore frontmatter (properties)
 		const fmPos = fileMetadata?.frontmatterPosition;
 		if (fmPos) {
 			fileContent = fileContent.slice(fmPos.end.offset+1);
@@ -207,7 +225,9 @@ export class ConsolidatedDefParser extends BaseDefParser {
             position: {
                 from: blk.position.from,
                 to: blk.position.to
-            }
+            },
+			displayMode: this.displayMode,
+			highlightStyle: this.highlightStyle
         };
     }
 }

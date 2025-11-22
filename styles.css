@@ -20,6 +20,14 @@
 	-webkit-text-decoration: underline var(--color-yellow) dotted;
 }
 
+.def-decoration-box {
+	border: 2px solid var(--color-yellow);
+	border-radius: 3px;
+	padding: 1px 3px;
+	background-color: var(--color-yellow-rgb);
+	box-shadow: 0 0 0 1px var(--color-yellow);
+}
+
 .def-link-decoration {
 	text-decoration: underline var(--color-green) dotted;
 	-webkit-text-decoration: underline var(--color-green) dotted;

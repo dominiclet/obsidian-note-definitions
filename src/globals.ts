@@ -1,4 +1,4 @@
-import { App, Platform } from "obsidian";
+import { App, Platform, Plugin } from "obsidian";
 import { DefinitionRepo, getDefFileManager } from "./core/def-file-manager";
 import { getDefinitionPopover } from "./editor/definition-popover";
 import { getDefinitionModal } from "./editor/mobile/definition-modal";
@@ -19,6 +19,7 @@ export interface GlobalVars {
 	triggerDefPreview: (el: HTMLElement) => void;
 	settings: Settings;
 	app: App;
+	plugin?: Plugin;
 }
 
 // Initialise and inject globals

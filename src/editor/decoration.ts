@@ -12,6 +12,9 @@ import { logDebug } from "src/util/log";
 import { DEF_DECORATION_CLS, getDecorationAttrs } from "./common";
 import { LineScanner } from "./definition-search";
 import { PTreeNode } from "./prefix-tree";
+import { getSettings } from "src/settings";
+import { getDefFileManager } from "src/core/def-file-manager";
+import { DisplayMode, HighlightStyle } from "src/core/model";
 
 // Information of phrase that can be used to add decorations within the editor
 interface PhraseInfo {
@@ -59,21 +62,74 @@ export class DefinitionMarker implements PluginValue {
 	buildDecorations(view: EditorView): DecorationSet {
 		const builder = new RangeSetBuilder<Decoration>();
 		const phraseInfos: PhraseInfo[] = [];
+		const settings = getSettings();
+		const defManager = getDefFileManager();
+		const currentFile = window.NoteDefinition.app.workspace.getActiveFile();
 
 		for (let { from, to } of view.visibleRanges) {
 			const text = view.state.sliceDoc(from, to);
 			phraseInfos.push(...scanText(text, from));
 		}
 
+		const filteredPhrases: PhraseInfo[] = [];
+
 		phraseInfos.forEach(wordPos => {
+			const phrase = wordPos.phrase.toLowerCase();
+
+			// Check if word is in known words list - skip if it is
+			if (settings.knownWords && settings.knownWords.includes(phrase)) {
+				return;
+			}
+
+			// Get the definition for this phrase
+			const definition = defManager.get(phrase);
+			if (!definition) {
+				return;
+			}
+
+			// Check display mode
+			if (definition.displayMode === DisplayMode.FirstOnly) {
+				// Check if this is the first occurrence across all documents
+				const tracking = settings.firstOccurrenceTracking || {};
+				const firstOccurrence = tracking[phrase];
+
+				if (firstOccurrence) {
+					// If we've already seen this word in another file, don't show it
+					if (currentFile && firstOccurrence.file !== currentFile.path) {
+						return;
+					}
+					// If we've seen it in this file at an earlier position, don't show it
+					if (currentFile && firstOccurrence.file === currentFile.path && wordPos.from > firstOccurrence.position) {
+						return;
+					}
+				} else if (currentFile) {
+					// Track this as the first occurrence
+					tracking[phrase] = {
+						file: currentFile.path,
+						position: wordPos.from
+					};
+					// Update the tracking data in settings
+					// Note: This will be persisted the next time settings are saved
+					settings.firstOccurrenceTracking = tracking;
+				}
+			}
+
+			// Determine the CSS class based on highlight style
+			let cssClass = DEF_DECORATION_CLS;
+			if (definition.highlightStyle === HighlightStyle.Box) {
+				cssClass = "def-decoration-box";
+			}
+
 			const attributes = getDecorationAttrs(wordPos.phrase);
 			builder.add(wordPos.from, wordPos.to, Decoration.mark({
-				class: DEF_DECORATION_CLS,
+				class: cssClass,
 				attributes: attributes,
 			}));
+
+			filteredPhrases.push(wordPos);
 		});
 
-		markedPhrases = phraseInfos;
+		markedPhrases = filteredPhrases;
 		return builder.finish();
 	}
 }

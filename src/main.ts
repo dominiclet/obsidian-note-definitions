@@ -28,8 +28,12 @@ export default class NoteDefinition extends Plugin {
 		const settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData())
 		injectGlobals(settings, this.app, window);
 
+		// Store plugin reference globally
+		window.NoteDefinition.plugin = this;
+
 		this.registerEvent(this.app.workspace.on('window-open', (win: WorkspaceWindow, newWindow: Window) => {
 			injectGlobals(settings, this.app, newWindow);
+			newWindow.NoteDefinition.plugin = this;
 		}))
 
 		logDebug("Load note definition plugin");
@@ -238,6 +242,53 @@ export default class NoteDefinition extends Plugin {
 					editModal.open(def);
 				});
 		});
+
+		// Add menu item to mark/unmark word as known
+		const settings = getSettings();
+		const isKnown = settings.knownWords && settings.knownWords.includes(def.key);
+
+		menu.addItem(item => {
+			if (isKnown) {
+				item.setTitle("Mark as unknown")
+					.setIcon("eye")
+					.onClick(async () => {
+						const index = settings.knownWords.indexOf(def.key);
+						if (index > -1) {
+							settings.knownWords.splice(index, 1);
+							await this.saveSettings();
+							new Notice(`"${def.word}" will now be highlighted again`);
+							// Force decoration update
+							this.forceDecorationUpdate();
+						}
+					});
+			} else {
+				item.setTitle("Mark as known")
+					.setIcon("eye-off")
+					.onClick(async () => {
+						if (!settings.knownWords) {
+							settings.knownWords = [];
+						}
+						settings.knownWords.push(def.key);
+						await this.saveSettings();
+						new Notice(`"${def.word}" marked as known and will no longer be highlighted`);
+						// Force decoration update
+						this.forceDecorationUpdate();
+					});
+			}
+		});
+	}
+
+	forceDecorationUpdate() {
+		let activeView = this.app.workspace.getActiveViewOfType(MarkdownView);
+		if(activeView) {
+			// @ts-expect-error, not typed
+			const view = activeView.editor.cm as EditorView;
+			const plugin = view.plugin(definitionMarker);
+
+			if (plugin) {
+				plugin.forceUpdate();
+			}
+		}
 	}
 
 	refreshDefinitions() {
