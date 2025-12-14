@@ -1,6 +1,6 @@
 import { App, Component, MarkdownRenderer, MarkdownView, normalizePath, Plugin } from "obsidian";
 import { Definition } from "src/core/model";
-import { getSettings, PopoverDismissType } from "src/settings";
+import { getSettings, PopoverDismissType, PopoverDisplayMode } from "src/settings";
 import { logDebug, logError } from "src/util/log";
 
 const DEF_POPOVER_ID = "definition-popover";
@@ -91,29 +91,132 @@ export class DefinitionPopover extends Component {
 		return verticalOffset > parseInt(containerStyle.height) / 2;
 	}
 
-	// Creates popover element and its children, without displaying it 
+	// Extract internal links from definition content
+	private extractOutboundLinks(definition: string): { text: string; link: string }[] {
+		const linkRegex = /\[\[([^\]|]+)(?:\|([^\]]+))?\]\]/g;
+		const links: { text: string; link: string }[] = [];
+		let match;
+
+		while ((match = linkRegex.exec(definition)) !== null) {
+			const link = match[1];
+			const text = match[2] || match[1];
+			// Avoid duplicates
+			if (!links.some(l => l.link === link)) {
+				links.push({ text, link });
+			}
+		}
+
+		return links;
+	}
+
+	// Creates popover element and its children, without displaying it
 	private createElement(def: Definition, parent: HTMLElement): HTMLDivElement {
 		const popoverSettings = getSettings().defPopoverConfig;
+		const isMinimalMode = popoverSettings.displayMode === PopoverDisplayMode.Minimal;
+
 		const el = parent.createEl("div", {
 			cls: "definition-popover",
 			attr: {
 				id: DEF_POPOVER_ID,
-				style: `visibility:hidden;${popoverSettings.backgroundColour ? 
+				style: `visibility:hidden;${popoverSettings.backgroundColour ?
 `background-color: ${popoverSettings.backgroundColour};` : ''}`
 			},
 		});
 
 		el.createEl("h2", { text: def.word });
+
 		if (def.aliases.length > 0 && popoverSettings.displayAliases) {
 			el.createEl("i", { text: def.aliases.join(", ") });
 		}
-		const contentEl = el.createEl("div");
-		contentEl.setAttr("ctx", "def-popup");
 
-		const currComponent = this;
-		MarkdownRenderer.render(this.app, def.definition, contentEl, 
-			normalizePath(def.file.path), currComponent);
-		this.postprocessMarkdown(contentEl, def);
+		if (isMinimalMode) {
+			// Minimal mode: show only outbound links
+			if (popoverSettings.showOutboundLinks) {
+				const outboundLinks = this.extractOutboundLinks(def.definition);
+				if (outboundLinks.length > 0) {
+					const linksContainer = el.createEl("div", { cls: "definition-popover-links" });
+					linksContainer.createEl("div", {
+						text: "Related:",
+						cls: "definition-popover-links-header"
+					});
+					const linksList = linksContainer.createEl("ul", { cls: "definition-popover-links-list" });
+
+					for (const linkInfo of outboundLinks) {
+						const li = linksList.createEl("li");
+						const linkEl = li.createEl("a", {
+							text: linkInfo.text,
+							cls: "internal-link definition-popover-link",
+							attr: { href: linkInfo.link }
+						});
+						linkEl.addEventListener('click', e => {
+							e.preventDefault();
+							const file = this.app.metadataCache.getFirstLinkpathDest(
+								linkInfo.link,
+								normalizePath(def.file.path)
+							);
+							this.unmount();
+							if (!file) return;
+							this.app.workspace.getLeaf().openFile(file);
+						});
+					}
+				}
+			}
+
+			// Add "View full definition" link
+			const viewFullEl = el.createEl("div", { cls: "definition-popover-view-full" });
+			const viewFullLink = viewFullEl.createEl("a", {
+				text: "View full definition →",
+				cls: "internal-link"
+			});
+			viewFullLink.addEventListener('click', e => {
+				e.preventDefault();
+				this.unmount();
+				this.app.workspace.openLinkText(def.linkText, '');
+			});
+		} else {
+			// Full mode: show complete definition content
+			const contentEl = el.createEl("div");
+			contentEl.setAttr("ctx", "def-popup");
+
+			const currComponent = this;
+			MarkdownRenderer.render(this.app, def.definition, contentEl,
+				normalizePath(def.file.path), currComponent);
+			this.postprocessMarkdown(contentEl, def);
+
+			// Show outbound links section if enabled (even in full mode)
+			if (popoverSettings.showOutboundLinks) {
+				const outboundLinks = this.extractOutboundLinks(def.definition);
+				if (outboundLinks.length > 0) {
+					const linksContainer = el.createEl("div", { cls: "definition-popover-links" });
+					linksContainer.createEl("div", {
+						text: "Related notes:",
+						cls: "definition-popover-links-header"
+					});
+					const linksEl = linksContainer.createEl("div", { cls: "definition-popover-links-inline" });
+
+					outboundLinks.forEach((linkInfo, index) => {
+						if (index > 0) {
+							linksEl.createSpan({ text: " · " });
+						}
+						const linkEl = linksEl.createEl("a", {
+							text: linkInfo.text,
+							cls: "internal-link definition-popover-link",
+							attr: { href: linkInfo.link }
+						});
+						linkEl.addEventListener('click', e => {
+							e.preventDefault();
+							const file = this.app.metadataCache.getFirstLinkpathDest(
+								linkInfo.link,
+								normalizePath(def.file.path)
+							);
+							this.unmount();
+							if (!file) return;
+							this.app.workspace.getLeaf().openFile(file);
+						});
+					});
+				}
+			}
+		}
 
 		if (popoverSettings.displayDefFileName) {
 			el.createEl("div", {

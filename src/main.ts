@@ -249,6 +249,13 @@ export default class NoteDefinition extends Plugin {
 	}
 
 	updateEditorExts() {
+		const settings = getSettings();
+		// If definitions are disabled globally, don't add any extensions
+		if (!settings.enableDefinitions) {
+			this.setActiveEditorExtensions([]);
+			return;
+		}
+
 		const currFile = this.app.workspace.getActiveFile();
 		if (currFile && this.defManager.isDefFile(currFile)) {
 			// TODO: Editor extension for definition file

@@ -22,6 +22,11 @@ export interface DefFileParseConfig {
 	autoPlurals: boolean;
 }
 
+export enum PopoverDisplayMode {
+	Full = "full",
+	Minimal = "minimal"
+}
+
 export interface DefinitionPopoverConfig {
 	displayAliases: boolean;
 	displayDefFileName: boolean;
@@ -31,9 +36,12 @@ export interface DefinitionPopoverConfig {
 	popoverDismissEvent: PopoverDismissType;
 	enableDefinitionLink: boolean;
 	backgroundColour?: string;
+	displayMode: PopoverDisplayMode;
+	showOutboundLinks: boolean;
 }
 
 export interface Settings {
+	enableDefinitions: boolean;
 	enableInReadingView: boolean;
 	enableSpellcheck: boolean;
 	defFolder: string;
@@ -47,6 +55,7 @@ export const VALID_DEFINITION_FILE_TYPES = [ ".md" ]
 export const DEFAULT_DEF_FOLDER = "definitions"
 
 export const DEFAULT_SETTINGS: Partial<Settings> = {
+	enableDefinitions: true,
 	enableInReadingView: true,
 	enableSpellcheck: true,
 	popoverEvent: PopoverEventSettings.Hover,
@@ -66,6 +75,8 @@ export const DEFAULT_SETTINGS: Partial<Settings> = {
 		maxHeight: 150,
 		popoverDismissEvent: PopoverDismissType.Click,
 		enableDefinitionLink: false,
+		displayMode: PopoverDisplayMode.Full,
+		showOutboundLinks: true,
 	}
 }
 
@@ -85,6 +96,22 @@ export class SettingsTab extends PluginSettingTab {
 		let { containerEl } = this;
 
 		containerEl.empty();
+
+		new Setting(containerEl)
+			.setName("Enable definitions")
+			.setDesc("Master toggle to enable or disable all definition highlighting and popovers")
+			.addToggle((component) => {
+				component.setValue(this.settings.enableDefinitions);
+				component.onChange(async (val) => {
+					this.settings.enableDefinitions = val;
+					await this.saveCallback();
+					this.display();
+				});
+			});
+
+		if (!this.settings.enableDefinitions) {
+			return;
+		}
 
 		new Setting(containerEl)
 			.setName("Enable in Reading View")
@@ -192,6 +219,33 @@ export class SettingsTab extends PluginSettingTab {
 		new Setting(containerEl)
 			.setHeading()
 			.setName("Definition Popover Settings");
+
+		new Setting(containerEl)
+			.setName("Popover display mode")
+			.setDesc("Full: Show complete definition content. Minimal: Show only the term name with links for quick navigation.")
+			.addDropdown((component) => {
+				component.addOption(PopoverDisplayMode.Full, "Full");
+				component.addOption(PopoverDisplayMode.Minimal, "Minimal");
+				component.setValue(this.settings.defPopoverConfig.displayMode ?? PopoverDisplayMode.Full);
+				component.onChange(async value => {
+					if (value === PopoverDisplayMode.Full || value === PopoverDisplayMode.Minimal) {
+						this.settings.defPopoverConfig.displayMode = value;
+					}
+					await this.saveCallback();
+					this.display();
+				});
+			});
+
+		new Setting(containerEl)
+			.setName("Show outbound links in popover")
+			.setDesc("Display internal links ([[...]]) found in the definition for quick navigation to related notes")
+			.addToggle((component) => {
+				component.setValue(this.settings.defPopoverConfig.showOutboundLinks ?? true);
+				component.onChange(async (val) => {
+					this.settings.defPopoverConfig.showOutboundLinks = val;
+					await this.saveCallback();
+				});
+			});
 
 		new Setting(containerEl)
 			.setName("Definition popover display event")

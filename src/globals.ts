@@ -30,6 +30,10 @@ export function injectGlobals(settings: Settings, app: App, targetWindow: Window
 			global: new DefinitionRepo(),
 		},
 		triggerDefPreview: (el: HTMLElement) => {
+			// Check if definitions are enabled
+			const currentSettings = getSettings();
+			if (!currentSettings.enableDefinitions) return;
+
 			const word = el.getAttr('def');
 			if (!word) return;
 
