@@ -109,6 +109,37 @@ export class DefinitionPopover extends Component {
 		return links;
 	}
 
+	// Truncate definition to N lines
+	private truncateToLines(definition: string, maxLines: number): { content: string; isTruncated: boolean } {
+		if (maxLines <= 0) {
+			return { content: definition, isTruncated: false };
+		}
+		const lines = definition.split('\n');
+		if (lines.length <= maxLines) {
+			return { content: definition, isTruncated: false };
+		}
+		return {
+			content: lines.slice(0, maxLines).join('\n'),
+			isTruncated: true
+		};
+	}
+
+	// Get backlinks count for a definition file
+	private getBacklinksCount(def: Definition): number {
+		// Use the resolvedLinks from metadataCache to find files linking to this definition
+		const resolvedLinks = this.app.metadataCache.resolvedLinks;
+		let count = 0;
+
+		for (const sourcePath in resolvedLinks) {
+			if (sourcePath === def.file.path) continue;
+			const links = resolvedLinks[sourcePath];
+			if (links && def.file.path in links) {
+				count++;
+			}
+		}
+		return count;
+	}
+
 	// Creates popover element and its children, without displaying it
 	private createElement(def: Definition, parent: HTMLElement): HTMLDivElement {
 		const popoverSettings = getSettings().defPopoverConfig;
@@ -178,10 +209,28 @@ export class DefinitionPopover extends Component {
 			const contentEl = el.createEl("div");
 			contentEl.setAttr("ctx", "def-popup");
 
+			// Apply preview line limit if configured
+			const previewLimit = popoverSettings.previewLineLimit ?? 0;
+			const { content: displayContent, isTruncated } = this.truncateToLines(def.definition, previewLimit);
+
 			const currComponent = this;
-			MarkdownRenderer.render(this.app, def.definition, contentEl,
+			MarkdownRenderer.render(this.app, displayContent, contentEl,
 				normalizePath(def.file.path), currComponent);
 			this.postprocessMarkdown(contentEl, def);
+
+			// Add "Read more..." link if truncated
+			if (isTruncated) {
+				const readMoreEl = el.createEl("div", { cls: "definition-popover-read-more" });
+				const readMoreLink = readMoreEl.createEl("a", {
+					text: "Read more...",
+					cls: "internal-link"
+				});
+				readMoreLink.addEventListener('click', e => {
+					e.preventDefault();
+					this.unmount();
+					this.app.workspace.openLinkText(def.linkText, '');
+				});
+			}
 
 			// Show outbound links section if enabled (even in full mode)
 			if (popoverSettings.showOutboundLinks) {
@@ -216,6 +265,58 @@ export class DefinitionPopover extends Component {
 					});
 				}
 			}
+		}
+
+		// Show backlinks count if enabled
+		if (popoverSettings.showBacklinksCount) {
+			const backlinksCount = this.getBacklinksCount(def);
+			if (backlinksCount > 0) {
+				el.createEl("div", {
+					text: `Referenced by ${backlinksCount} note${backlinksCount > 1 ? 's' : ''}`,
+					cls: "definition-popover-backlinks"
+				});
+			}
+		}
+
+		// Show quick actions if enabled
+		if (popoverSettings.showQuickActions) {
+			const actionsEl = el.createEl("div", { cls: "definition-popover-actions" });
+
+			const editBtn = actionsEl.createEl("button", {
+				text: "Edit",
+				cls: "definition-popover-action-btn"
+			});
+			editBtn.addEventListener('click', e => {
+				e.preventDefault();
+				e.stopPropagation();
+				this.unmount();
+				// Open the edit modal
+				const { EditDefinitionModal } = require('./edit-modal');
+				const editModal = new EditDefinitionModal(this.app);
+				editModal.open(def);
+			});
+
+			const openBtn = actionsEl.createEl("button", {
+				text: "Open",
+				cls: "definition-popover-action-btn"
+			});
+			openBtn.addEventListener('click', e => {
+				e.preventDefault();
+				e.stopPropagation();
+				this.unmount();
+				this.app.workspace.openLinkText(def.linkText, '');
+			});
+
+			const newPaneBtn = actionsEl.createEl("button", {
+				text: "New pane",
+				cls: "definition-popover-action-btn"
+			});
+			newPaneBtn.addEventListener('click', e => {
+				e.preventDefault();
+				e.stopPropagation();
+				this.unmount();
+				this.app.workspace.getLeaf('split').openFile(def.file);
+			});
 		}
 
 		if (popoverSettings.displayDefFileName) {

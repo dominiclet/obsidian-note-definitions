@@ -50,10 +50,11 @@ export function injectGlobals(settings: Settings, app: App, targetWindow: Window
 			let isOpen = false;
 
 			if (el.onmouseenter) {
+				const hoverDelay = currentSettings.defPopoverConfig.hoverDelay ?? 200;
 				const openPopover = setTimeout(() => {
 					defPopover.openAtCoords(def, el.getBoundingClientRect());
 					isOpen = true;
-				}, 200);
+				}, hoverDelay);
 
 				el.onmouseleave = () => {
 					const popoverSettings = getSettings().defPopoverConfig;
