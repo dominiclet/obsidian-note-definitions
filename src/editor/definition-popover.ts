@@ -160,164 +160,10 @@ export class DefinitionPopover extends Component {
 			el.createEl("i", { text: def.aliases.join(", ") });
 		}
 
-		if (isMinimalMode) {
-			// Minimal mode: show only outbound links
-			if (popoverSettings.showOutboundLinks) {
-				const outboundLinks = this.extractOutboundLinks(def.definition);
-				if (outboundLinks.length > 0) {
-					const linksContainer = el.createEl("div", { cls: "definition-popover-links" });
-					linksContainer.createEl("div", {
-						text: "Related:",
-						cls: "definition-popover-links-header"
-					});
-					const linksList = linksContainer.createEl("ul", { cls: "definition-popover-links-list" });
-
-					for (const linkInfo of outboundLinks) {
-						const li = linksList.createEl("li");
-						const linkEl = li.createEl("a", {
-							text: linkInfo.text,
-							cls: "internal-link definition-popover-link",
-							attr: { href: linkInfo.link }
-						});
-						linkEl.addEventListener('click', e => {
-							e.preventDefault();
-							const file = this.app.metadataCache.getFirstLinkpathDest(
-								linkInfo.link,
-								normalizePath(def.file.path)
-							);
-							this.unmount();
-							if (!file) return;
-							this.app.workspace.getLeaf().openFile(file);
-						});
-					}
-				}
-			}
-
-			// Add "View full definition" link
-			const viewFullEl = el.createEl("div", { cls: "definition-popover-view-full" });
-			const viewFullLink = viewFullEl.createEl("a", {
-				text: "View full definition →",
-				cls: "internal-link"
-			});
-			viewFullLink.addEventListener('click', e => {
-				e.preventDefault();
-				this.unmount();
-				this.app.workspace.openLinkText(def.linkText, '');
-			});
-		} else {
-			// Full mode: show complete definition content
-			const contentEl = el.createEl("div");
-			contentEl.setAttr("ctx", "def-popup");
-
-			// Apply preview line limit if configured
-			const previewLimit = popoverSettings.previewLineLimit ?? 0;
-			const { content: displayContent, isTruncated } = this.truncateToLines(def.definition, previewLimit);
-
-			const currComponent = this;
-			MarkdownRenderer.render(this.app, displayContent, contentEl,
-				normalizePath(def.file.path), currComponent);
-			this.postprocessMarkdown(contentEl, def);
-
-			// Add "Read more..." link if truncated
-			if (isTruncated) {
-				const readMoreEl = el.createEl("div", { cls: "definition-popover-read-more" });
-				const readMoreLink = readMoreEl.createEl("a", {
-					text: "Read more...",
-					cls: "internal-link"
-				});
-				readMoreLink.addEventListener('click', e => {
-					e.preventDefault();
-					this.unmount();
-					this.app.workspace.openLinkText(def.linkText, '');
-				});
-			}
-
-			// Show outbound links section if enabled (even in full mode)
-			if (popoverSettings.showOutboundLinks) {
-				const outboundLinks = this.extractOutboundLinks(def.definition);
-				if (outboundLinks.length > 0) {
-					const linksContainer = el.createEl("div", { cls: "definition-popover-links" });
-					linksContainer.createEl("div", {
-						text: "Related notes:",
-						cls: "definition-popover-links-header"
-					});
-					const linksEl = linksContainer.createEl("div", { cls: "definition-popover-links-inline" });
-
-					outboundLinks.forEach((linkInfo, index) => {
-						if (index > 0) {
-							linksEl.createSpan({ text: " · " });
-						}
-						const linkEl = linksEl.createEl("a", {
-							text: linkInfo.text,
-							cls: "internal-link definition-popover-link",
-							attr: { href: linkInfo.link }
-						});
-						linkEl.addEventListener('click', e => {
-							e.preventDefault();
-							const file = this.app.metadataCache.getFirstLinkpathDest(
-								linkInfo.link,
-								normalizePath(def.file.path)
-							);
-							this.unmount();
-							if (!file) return;
-							this.app.workspace.getLeaf().openFile(file);
-						});
-					});
-				}
-			}
-		}
-
-		// Show backlinks count if enabled
-		if (popoverSettings.showBacklinksCount) {
-			const backlinksCount = this.getBacklinksCount(def);
-			if (backlinksCount > 0) {
-				el.createEl("div", {
-					text: `Referenced by ${backlinksCount} note${backlinksCount > 1 ? 's' : ''}`,
-					cls: "definition-popover-backlinks"
-				});
-			}
-		}
-
-		// Show quick actions if enabled
-		if (popoverSettings.showQuickActions) {
-			const actionsEl = el.createEl("div", { cls: "definition-popover-actions" });
-
-			const editBtn = actionsEl.createEl("button", {
-				text: "Edit",
-				cls: "definition-popover-action-btn"
-			});
-			editBtn.addEventListener('click', e => {
-				e.preventDefault();
-				e.stopPropagation();
-				this.unmount();
-				// Open the edit modal
-				const { EditDefinitionModal } = require('./edit-modal');
-				const editModal = new EditDefinitionModal(this.app);
-				editModal.open(def);
-			});
-
-			const openBtn = actionsEl.createEl("button", {
-				text: "Open",
-				cls: "definition-popover-action-btn"
-			});
-			openBtn.addEventListener('click', e => {
-				e.preventDefault();
-				e.stopPropagation();
-				this.unmount();
-				this.app.workspace.openLinkText(def.linkText, '');
-			});
-
-			const newPaneBtn = actionsEl.createEl("button", {
-				text: "New pane",
-				cls: "definition-popover-action-btn"
-			});
-			newPaneBtn.addEventListener('click', e => {
-				e.preventDefault();
-				e.stopPropagation();
-				this.unmount();
-				this.app.workspace.getLeaf('split').openFile(def.file);
-			});
-		}
+		const currComponent = this;
+		MarkdownRenderer.render(this.app, def.definition, contentEl,
+			normalizePath(def.file.path), currComponent);
+		this.postprocessMarkdown(contentEl, def);
 
 		if (popoverSettings.displayDefFileName) {
 			el.createEl("div", {
@@ -325,6 +171,82 @@ export class DefinitionPopover extends Component {
 				cls: 'definition-popover-filename'
 			});
 		}
+
+		// Add quick-toggle buttons
+		const controlsContainer = el.createEl("div", {
+			cls: "definition-popover-controls"
+		});
+
+		// Button: Hide this word
+		const hideWordBtn = controlsContainer.createEl("button", {
+			text: "Hide this word",
+			cls: "definition-control-button"
+		});
+		hideWordBtn.onclick = async () => {
+			const settings = getSettings();
+			if (!settings.knownWords) {
+				settings.knownWords = [];
+			}
+			if (!settings.knownWords.includes(def.key)) {
+				settings.knownWords.push(def.key);
+				const plugin = window.NoteDefinition.plugin as any;
+				if (plugin && plugin.saveSettings) {
+					await plugin.saveSettings();
+				}
+				// Force decoration update
+				if (plugin && plugin.forceDecorationUpdate) {
+					plugin.forceDecorationUpdate();
+				}
+				this.unmount();
+			}
+		};
+
+		// Button: Disable for this page
+		const disablePageBtn = controlsContainer.createEl("button", {
+			text: "Disable for this page",
+			cls: "definition-control-button"
+		});
+		disablePageBtn.onclick = async () => {
+			const currentFile = this.app.workspace.getActiveFile();
+			if (currentFile) {
+				const content = await this.app.vault.read(currentFile);
+				const cache = this.app.metadataCache.getFileCache(currentFile);
+				const frontmatter = cache?.frontmatter || {};
+
+				// Add or update frontmatter
+				let newContent = content;
+				if (cache?.frontmatterPosition) {
+					// Has frontmatter, update it
+					const fmStart = cache.frontmatterPosition.start.offset;
+					const fmEnd = cache.frontmatterPosition.end.offset + 1;
+					const fmContent = content.substring(fmStart + 3, fmEnd - 4);
+					const newFm = fmContent + '\nenable-definitions: false\n';
+					newContent = content.substring(0, fmStart) + '---\n' + newFm + '---\n' + content.substring(fmEnd);
+				} else {
+					// No frontmatter, add it
+					newContent = '---\nenable-definitions: false\n---\n\n' + content;
+				}
+
+				await this.app.vault.modify(currentFile, newContent);
+				this.unmount();
+			}
+		};
+
+		// Button: Turn off all definitions
+		const globalToggleBtn = controlsContainer.createEl("button", {
+			text: "Turn off all definitions",
+			cls: "definition-control-button definition-control-danger"
+		});
+		globalToggleBtn.onclick = async () => {
+			const settings = getSettings();
+			settings.enableInReadingView = false;
+			const plugin = window.NoteDefinition.plugin as any;
+			if (plugin && plugin.saveSettings) {
+				await plugin.saveSettings();
+			}
+			this.unmount();
+		};
+
 		return el;
 	}
 

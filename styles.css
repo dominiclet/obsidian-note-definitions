@@ -125,6 +125,14 @@
 	-webkit-text-decoration: underline var(--color-yellow) dotted;
 }
 
+.def-decoration-box {
+	border: 2px solid var(--color-yellow);
+	border-radius: 3px;
+	padding: 1px 3px;
+	background-color: var(--color-yellow-rgb);
+	box-shadow: 0 0 0 1px var(--color-yellow);
+}
+
 .def-link-decoration {
 	text-decoration: underline var(--color-green) dotted;
 	-webkit-text-decoration: underline var(--color-green) dotted;
@@ -156,4 +164,42 @@
 	font-size: var(--font-ui-medium);
 	float: right;
 	background-color: var(--interactive-normal);
+}
+
+.definition-popover-controls {
+	display: flex;
+	gap: 6px;
+	margin-top: 12px;
+	padding-top: 8px;
+	border-top: 1px solid var(--background-modifier-border);
+	flex-wrap: wrap;
+}
+
+.definition-control-button {
+	flex: 1;
+	min-width: fit-content;
+	padding: 4px 8px;
+	font-size: var(--font-ui-smaller);
+	background: var(--interactive-normal);
+	border: 1px solid var(--background-modifier-border);
+	border-radius: 4px;
+	cursor: pointer;
+	color: var(--text-normal);
+	transition: all 0.15s ease;
+}
+
+.definition-control-button:hover {
+	background: var(--interactive-hover);
+	border-color: var(--interactive-accent);
+}
+
+.definition-control-danger {
+	background: var(--background-modifier-error);
+	border-color: var(--background-modifier-error);
+	color: var(--text-on-accent);
+}
+
+.definition-control-danger:hover {
+	background: var(--background-modifier-error-hover);
+	opacity: 0.9;
 }

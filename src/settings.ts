@@ -44,6 +44,11 @@ export interface DefinitionPopoverConfig {
 	showBacklinksCount: boolean;
 }
 
+export interface FirstOccurrenceInfo {
+	file: string;
+	position: number;
+}
+
 export interface Settings {
 	enableDefinitions: boolean;
 	enableInReadingView: boolean;
@@ -52,6 +57,8 @@ export interface Settings {
 	popoverEvent: PopoverEventSettings;
 	defFileParseConfig: DefFileParseConfig;
 	defPopoverConfig: DefinitionPopoverConfig;
+	knownWords: string[];
+	firstOccurrenceTracking: Record<string, FirstOccurrenceInfo>;
 }
 
 export const VALID_DEFINITION_FILE_TYPES = [ ".md" ]
@@ -440,6 +447,141 @@ export class SettingsTab extends PluginSettingTab {
 					await this.saveCallback();
 				})
 			});
+
+		new Setting(containerEl)
+			.setHeading()
+			.setName("Known Words Management");
+
+		new Setting(containerEl)
+			.setName("Known words")
+			.setDesc("Words you've marked as 'known' won't be highlighted. Right-click any highlighted word to mark it as known/unknown.")
+			.addExtraButton(component => {
+				component.setIcon("trash");
+				component.setTooltip("Clear all known words");
+				component.onClick(async () => {
+					this.settings.knownWords = [];
+					await this.saveCallback();
+					this.display();
+				});
+			})
+			.addExtraButton(component => {
+				component.setIcon("gear");
+				component.setTooltip("Manage known words");
+				component.onClick(() => {
+					const modal = new KnownWordsModal(this.app, this.settings, this.saveCallback);
+					modal.open();
+				});
+			});
+
+		if (this.settings.knownWords && this.settings.knownWords.length > 0) {
+			const knownWordsDiv = containerEl.createDiv();
+			knownWordsDiv.style.marginLeft = "2em";
+			knownWordsDiv.style.marginTop = "0.5em";
+			knownWordsDiv.style.marginBottom = "1em";
+			knownWordsDiv.style.fontSize = "0.9em";
+			knownWordsDiv.setText(`${this.settings.knownWords.length} word(s) marked as known`);
+		}
+
+		new Setting(containerEl)
+			.setName("First occurrence tracking")
+			.setDesc("NOTE: When using 'first occurrence only' mode for words, the plugin tracks where each word first appeared across all documents. If you're reading out of order, you may still see definitions even in 'first only' mode. You can always mark words as 'known' to hide them permanently.")
+			.addExtraButton(component => {
+				component.setIcon("trash");
+				component.setTooltip("Clear tracking data (resets which words are considered 'first seen')");
+				component.onClick(async () => {
+					this.settings.firstOccurrenceTracking = {};
+					await this.saveCallback();
+					new Notice("First occurrence tracking data cleared");
+				});
+			});
+
+		new Setting(containerEl)
+			.setHeading()
+			.setName("Analytics Dashboards");
+
+		new Setting(containerEl)
+			.setName("Math Translation Dashboard")
+			.setDesc("Generate a comprehensive analysis of mathematical symbols and equations used across your vault.")
+			.addButton(component => {
+				component.setButtonText("Generate Dashboard");
+				component.setCta();
+				component.onClick(async () => {
+					const plugin = window.NoteDefinition.plugin as any;
+					if (plugin && plugin.generateMathDashboard) {
+						await plugin.generateMathDashboard();
+					} else {
+						new Notice("Error: Plugin not loaded correctly");
+					}
+				});
+			});
+
+		new Setting(containerEl)
+			.setName("Theory Integration Dashboard")
+			.setDesc("Track references to 80+ frameworks across Physics, Theology, Mathematics, and Consciousness studies.")
+			.addButton(component => {
+				component.setButtonText("Generate Dashboard");
+				component.setCta();
+				component.onClick(async () => {
+					const plugin = window.NoteDefinition.plugin as any;
+					if (plugin && plugin.generateTheoryDashboard) {
+						await plugin.generateTheoryDashboard();
+					} else {
+						new Notice("Error: Plugin not loaded correctly");
+					}
+				});
+			});
+	}
+}
+
+class KnownWordsModal extends Modal {
+	settings: Settings;
+	saveCallback: () => Promise<void>;
+
+	constructor(app: App, settings: Settings, saveCallback: () => Promise<void>) {
+		super(app);
+		this.settings = settings;
+		this.saveCallback = saveCallback;
+	}
+
+	onOpen() {
+		const { contentEl } = this;
+		contentEl.empty();
+		contentEl.createEl("h2", { text: "Manage Known Words" });
+
+		const description = contentEl.createEl("p");
+		description.setText("Remove words from this list to show their definitions again.");
+		description.style.marginBottom = "1em";
+
+		if (this.settings.knownWords.length === 0) {
+			contentEl.createEl("p", { text: "No known words yet. Right-click any highlighted word to mark it as known." });
+		} else {
+			const wordList = contentEl.createDiv();
+			wordList.style.maxHeight = "400px";
+			wordList.style.overflowY = "auto";
+
+			this.settings.knownWords.forEach((word, index) => {
+				const wordItem = wordList.createDiv();
+				wordItem.style.display = "flex";
+				wordItem.style.justifyContent = "space-between";
+				wordItem.style.alignItems = "center";
+				wordItem.style.padding = "0.5em";
+				wordItem.style.borderBottom = "1px solid var(--background-modifier-border)";
+
+				const wordText = wordItem.createSpan({ text: word });
+
+				const removeButton = wordItem.createEl("button", { text: "Remove" });
+				removeButton.onclick = async () => {
+					this.settings.knownWords.splice(index, 1);
+					await this.saveCallback();
+					this.onOpen(); // Refresh the modal
+				};
+			});
+		}
+	}
+
+	onClose() {
+		const { contentEl } = this;
+		contentEl.empty();
 	}
 }
 
