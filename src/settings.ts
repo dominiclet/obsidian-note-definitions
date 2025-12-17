@@ -22,6 +22,11 @@ export interface DefFileParseConfig {
 	autoPlurals: boolean;
 }
 
+export enum PopoverDisplayMode {
+	Full = "full",
+	Minimal = "minimal"
+}
+
 export interface DefinitionPopoverConfig {
 	displayAliases: boolean;
 	displayDefFileName: boolean;
@@ -31,6 +36,12 @@ export interface DefinitionPopoverConfig {
 	popoverDismissEvent: PopoverDismissType;
 	enableDefinitionLink: boolean;
 	backgroundColour?: string;
+	displayMode: PopoverDisplayMode;
+	showOutboundLinks: boolean;
+	hoverDelay: number;
+	previewLineLimit: number;
+	showQuickActions: boolean;
+	showBacklinksCount: boolean;
 }
 
 export interface FirstOccurrenceInfo {
@@ -39,6 +50,7 @@ export interface FirstOccurrenceInfo {
 }
 
 export interface Settings {
+	enableDefinitions: boolean;
 	enableInReadingView: boolean;
 	enableSpellcheck: boolean;
 	defFolder: string;
@@ -54,6 +66,7 @@ export const VALID_DEFINITION_FILE_TYPES = [ ".md" ]
 export const DEFAULT_DEF_FOLDER = "definitions"
 
 export const DEFAULT_SETTINGS: Partial<Settings> = {
+	enableDefinitions: true,
 	enableInReadingView: true,
 	enableSpellcheck: true,
 	popoverEvent: PopoverEventSettings.Hover,
@@ -73,9 +86,13 @@ export const DEFAULT_SETTINGS: Partial<Settings> = {
 		maxHeight: 150,
 		popoverDismissEvent: PopoverDismissType.Click,
 		enableDefinitionLink: false,
-	},
-	knownWords: [],
-	firstOccurrenceTracking: {}
+		displayMode: PopoverDisplayMode.Full,
+		showOutboundLinks: true,
+		hoverDelay: 200,
+		previewLineLimit: 0,
+		showQuickActions: false,
+		showBacklinksCount: false,
+	}
 }
 
 export class SettingsTab extends PluginSettingTab {
@@ -94,6 +111,22 @@ export class SettingsTab extends PluginSettingTab {
 		let { containerEl } = this;
 
 		containerEl.empty();
+
+		new Setting(containerEl)
+			.setName("Enable definitions")
+			.setDesc("Master toggle to enable or disable all definition highlighting and popovers")
+			.addToggle((component) => {
+				component.setValue(this.settings.enableDefinitions);
+				component.onChange(async (val) => {
+					this.settings.enableDefinitions = val;
+					await this.saveCallback();
+					this.display();
+				});
+			});
+
+		if (!this.settings.enableDefinitions) {
+			return;
+		}
 
 		new Setting(containerEl)
 			.setName("Enable in Reading View")
@@ -203,6 +236,70 @@ export class SettingsTab extends PluginSettingTab {
 			.setName("Definition Popover Settings");
 
 		new Setting(containerEl)
+			.setName("Popover display mode")
+			.setDesc("Full: Show complete definition content. Minimal: Show only the term name with links for quick navigation.")
+			.addDropdown((component) => {
+				component.addOption(PopoverDisplayMode.Full, "Full");
+				component.addOption(PopoverDisplayMode.Minimal, "Minimal");
+				component.setValue(this.settings.defPopoverConfig.displayMode ?? PopoverDisplayMode.Full);
+				component.onChange(async value => {
+					if (value === PopoverDisplayMode.Full || value === PopoverDisplayMode.Minimal) {
+						this.settings.defPopoverConfig.displayMode = value;
+					}
+					await this.saveCallback();
+					this.display();
+				});
+			});
+
+		new Setting(containerEl)
+			.setName("Show outbound links in popover")
+			.setDesc("Display internal links ([[...]]) found in the definition for quick navigation to related notes")
+			.addToggle((component) => {
+				component.setValue(this.settings.defPopoverConfig.showOutboundLinks ?? true);
+				component.onChange(async (val) => {
+					this.settings.defPopoverConfig.showOutboundLinks = val;
+					await this.saveCallback();
+				});
+			});
+
+		if (this.settings.defPopoverConfig.displayMode === PopoverDisplayMode.Full) {
+			new Setting(containerEl)
+				.setName("Preview line limit")
+				.setDesc("Limit definition preview to first N lines (0 = show all). Adds 'Read more...' link when truncated.")
+				.addSlider(component => {
+					component.setLimits(0, 50, 1);
+					component.setValue(this.settings.defPopoverConfig.previewLineLimit ?? 0);
+					component.setDynamicTooltip();
+					component.onChange(async val => {
+						this.settings.defPopoverConfig.previewLineLimit = val;
+						await this.saveCallback();
+					});
+				});
+		}
+
+		new Setting(containerEl)
+			.setName("Show quick actions")
+			.setDesc("Display action buttons (Edit, Open in new pane) in the popover")
+			.addToggle((component) => {
+				component.setValue(this.settings.defPopoverConfig.showQuickActions ?? false);
+				component.onChange(async (val) => {
+					this.settings.defPopoverConfig.showQuickActions = val;
+					await this.saveCallback();
+				});
+			});
+
+		new Setting(containerEl)
+			.setName("Show backlinks count")
+			.setDesc("Display the number of notes that reference this definition")
+			.addToggle((component) => {
+				component.setValue(this.settings.defPopoverConfig.showBacklinksCount ?? false);
+				component.onChange(async (val) => {
+					this.settings.defPopoverConfig.showBacklinksCount = val;
+					await this.saveCallback();
+				});
+			});
+
+		new Setting(containerEl)
 			.setName("Definition popover display event")
 			.setDesc("Choose the trigger event for displaying the definition popover")
 			.addDropdown((component) => {
@@ -237,6 +334,19 @@ export class SettingsTab extends PluginSettingTab {
 						if (value === PopoverDismissType.MouseExit || value === PopoverDismissType.Click) {
 							this.settings.defPopoverConfig.popoverDismissEvent = value;
 						}
+						await this.saveCallback();
+					});
+				});
+
+			new Setting(containerEl)
+				.setName("Hover delay (ms)")
+				.setDesc("Time to wait before showing the popover when hovering over a definition")
+				.addSlider(component => {
+					component.setLimits(0, 1000, 50);
+					component.setValue(this.settings.defPopoverConfig.hoverDelay ?? 200);
+					component.setDynamicTooltip();
+					component.onChange(async val => {
+						this.settings.defPopoverConfig.hoverDelay = val;
 						await this.saveCallback();
 					});
 				});

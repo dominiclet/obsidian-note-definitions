@@ -1,6 +1,6 @@
 import { App, Component, MarkdownRenderer, MarkdownView, normalizePath, Plugin } from "obsidian";
 import { Definition } from "src/core/model";
-import { getSettings, PopoverDismissType } from "src/settings";
+import { getSettings, PopoverDismissType, PopoverDisplayMode } from "src/settings";
 import { logDebug, logError } from "src/util/log";
 
 const DEF_POPOVER_ID = "definition-popover";
@@ -91,9 +91,60 @@ export class DefinitionPopover extends Component {
 		return verticalOffset > parseInt(containerStyle.height) / 2;
 	}
 
-	// Creates popover element and its children, without displaying it 
+	// Extract internal links from definition content
+	private extractOutboundLinks(definition: string): { text: string; link: string }[] {
+		const linkRegex = /\[\[([^\]|]+)(?:\|([^\]]+))?\]\]/g;
+		const links: { text: string; link: string }[] = [];
+		let match;
+
+		while ((match = linkRegex.exec(definition)) !== null) {
+			const link = match[1];
+			const text = match[2] || match[1];
+			// Avoid duplicates
+			if (!links.some(l => l.link === link)) {
+				links.push({ text, link });
+			}
+		}
+
+		return links;
+	}
+
+	// Truncate definition to N lines
+	private truncateToLines(definition: string, maxLines: number): { content: string; isTruncated: boolean } {
+		if (maxLines <= 0) {
+			return { content: definition, isTruncated: false };
+		}
+		const lines = definition.split('\n');
+		if (lines.length <= maxLines) {
+			return { content: definition, isTruncated: false };
+		}
+		return {
+			content: lines.slice(0, maxLines).join('\n'),
+			isTruncated: true
+		};
+	}
+
+	// Get backlinks count for a definition file
+	private getBacklinksCount(def: Definition): number {
+		// Use the resolvedLinks from metadataCache to find files linking to this definition
+		const resolvedLinks = this.app.metadataCache.resolvedLinks;
+		let count = 0;
+
+		for (const sourcePath in resolvedLinks) {
+			if (sourcePath === def.file.path) continue;
+			const links = resolvedLinks[sourcePath];
+			if (links && def.file.path in links) {
+				count++;
+			}
+		}
+		return count;
+	}
+
+	// Creates popover element and its children, without displaying it
 	private createElement(def: Definition, parent: HTMLElement): HTMLDivElement {
 		const popoverSettings = getSettings().defPopoverConfig;
+		const isMinimalMode = popoverSettings.displayMode === PopoverDisplayMode.Minimal;
+
 		const el = parent.createEl("div", {
 			cls: "definition-popover",
 			attr: {
@@ -104,11 +155,10 @@ export class DefinitionPopover extends Component {
 		});
 
 		el.createEl("h2", { text: def.word });
+
 		if (def.aliases.length > 0 && popoverSettings.displayAliases) {
 			el.createEl("i", { text: def.aliases.join(", ") });
 		}
-		const contentEl = el.createEl("div");
-		contentEl.setAttr("ctx", "def-popup");
 
 		const currComponent = this;
 		MarkdownRenderer.render(this.app, def.definition, contentEl,

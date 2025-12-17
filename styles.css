@@ -15,6 +15,111 @@
 	float: right;
 }
 
+/* Outbound links section in popover */
+.definition-popover-links {
+	margin-top: var(--size-4-2);
+	padding-top: var(--size-4-2);
+	border-top: 1px solid var(--background-modifier-border);
+}
+
+.definition-popover-links-header {
+	font-size: var(--font-ui-smaller);
+	color: var(--text-muted);
+	margin-bottom: var(--size-4-1);
+}
+
+.definition-popover-links-list {
+	list-style: none;
+	padding-left: 0;
+	margin: 0;
+}
+
+.definition-popover-links-list li {
+	margin: var(--size-4-1) 0;
+}
+
+.definition-popover-links-inline {
+	display: flex;
+	flex-wrap: wrap;
+	gap: var(--size-4-1);
+	align-items: center;
+}
+
+.definition-popover-link {
+	cursor: pointer;
+	color: var(--link-color);
+}
+
+.definition-popover-link:hover {
+	color: var(--link-color-hover);
+	text-decoration: underline;
+}
+
+/* View full definition link in minimal mode */
+.definition-popover-view-full {
+	margin-top: var(--size-4-2);
+	padding-top: var(--size-4-2);
+	border-top: 1px solid var(--background-modifier-border);
+}
+
+.definition-popover-view-full a {
+	font-size: var(--font-ui-smaller);
+	color: var(--text-accent);
+	cursor: pointer;
+}
+
+.definition-popover-view-full a:hover {
+	color: var(--text-accent-hover);
+}
+
+/* Read more link for truncated definitions */
+.definition-popover-read-more {
+	margin-top: var(--size-4-1);
+}
+
+.definition-popover-read-more a {
+	font-size: var(--font-ui-smaller);
+	color: var(--text-accent);
+	cursor: pointer;
+}
+
+.definition-popover-read-more a:hover {
+	color: var(--text-accent-hover);
+	text-decoration: underline;
+}
+
+/* Backlinks count */
+.definition-popover-backlinks {
+	font-size: var(--font-ui-smaller);
+	color: var(--text-muted);
+	margin-top: var(--size-4-2);
+	padding-top: var(--size-4-1);
+	border-top: 1px solid var(--background-modifier-border);
+}
+
+/* Quick action buttons */
+.definition-popover-actions {
+	display: flex;
+	gap: var(--size-4-2);
+	margin-top: var(--size-4-2);
+	padding-top: var(--size-4-2);
+	border-top: 1px solid var(--background-modifier-border);
+}
+
+.definition-popover-action-btn {
+	font-size: var(--font-ui-smaller);
+	padding: var(--size-4-1) var(--size-4-2);
+	background-color: var(--interactive-normal);
+	border: 1px solid var(--background-modifier-border);
+	border-radius: var(--radius-s);
+	cursor: pointer;
+	color: var(--text-normal);
+}
+
+.definition-popover-action-btn:hover {
+	background-color: var(--interactive-hover);
+}
+
 .def-decoration {
 	text-decoration: underline var(--color-yellow) dotted;
 	-webkit-text-decoration: underline var(--color-yellow) dotted;

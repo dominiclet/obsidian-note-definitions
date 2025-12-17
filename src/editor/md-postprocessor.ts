@@ -13,8 +13,13 @@ interface Marks {
 }
 
 export const postProcessor: MarkdownPostProcessor = (element, context) => {
-	const shouldRunPostProcessor = window.NoteDefinition.settings.enableInReadingView;
-	if (!shouldRunPostProcessor) {
+	const settings = window.NoteDefinition.settings;
+	// Check if definitions are enabled globally
+	if (!settings.enableDefinitions) {
+		return;
+	}
+	// Check if reading view is enabled
+	if (!settings.enableInReadingView) {
 		return;
 	}
 
