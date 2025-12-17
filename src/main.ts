@@ -1,4 +1,4 @@
-import { Menu, Notice, Plugin, TFolder, WorkspaceWindow, TFile, MarkdownView } from 'obsidian';
+import { Menu, Modal, Notice, Plugin, TFolder, WorkspaceWindow, TFile, MarkdownView } from 'obsidian';
 import { injectGlobals } from './globals';
 import { logDebug } from './util/log';
 import { definitionMarker } from './editor/decoration';
@@ -157,6 +157,14 @@ export default class NoteDefinition extends Plugin {
 			name: "Generate Theory Integration Dashboard",
 			callback: async () => {
 				await this.generateTheoryDashboard();
+			}
+		});
+
+		this.addCommand({
+			id: "create-definition-from-template",
+			name: "Create Definition from Template",
+			callback: async () => {
+				await this.createDefinitionFromTemplate();
 			}
 		});
 	}
@@ -622,6 +630,113 @@ updated: ${new Date().toLocaleString()}
 			new Notice(`Error creating dashboard: ${error}`);
 			console.error(error);
 		}
+	}
+
+	// ==============================================================
+	// DEFINITION TEMPLATES
+	// ==============================================================
+	async createDefinitionFromTemplate() {
+		const settings = getSettings();
+		const defFolder = settings.defFolder || 'definitions';
+
+		// Check if template exists
+		const templatePath = `${defFolder}/_template.md`;
+		const templateFile = this.app.vault.getAbstractFileByPath(templatePath);
+
+		let template = `---
+display-mode: all-occurrences
+highlight-style: underline
+---
+
+# [Term Name]
+
+*[Aliases: synonym1, synonym2]*
+
+## Definition
+[Core definition goes here]
+
+## Context
+[Where this term is used, related concepts]
+
+## Examples
+- Example 1
+- Example 2
+
+## References
+- [[Related Term 1]]
+- [[Related Term 2]]
+`;
+
+		// If template exists, use it
+		if (templateFile instanceof TFile) {
+			template = await this.app.vault.read(templateFile);
+		} else {
+			// Create default template for future use
+			try {
+				await this.app.vault.create(templatePath, template);
+				new Notice("Created default template at " + templatePath);
+			} catch (e) {
+				// Template creation failed, continue anyway
+			}
+		}
+
+		// Prompt for term name
+		const termName = await this.promptForInput("Enter term name:");
+		if (!termName) return;
+
+		// Replace placeholders
+		const finalContent = template
+			.replace(/\[Term Name\]/g, termName)
+			.replace(/\[Aliases:.*?\]/g, `Aliases: ${termName.toLowerCase()}`);
+
+		// Create new definition file
+		const newFilePath = `${defFolder}/${termName}.md`;
+		try {
+			const newFile = await this.app.vault.create(newFilePath, finalContent);
+			new Notice(`Created definition: ${termName}`);
+
+			// Open the file
+			const leaf = this.app.workspace.getLeaf(false);
+			await leaf.openFile(newFile);
+		} catch (error) {
+			new Notice(`Error creating definition: ${error}`);
+		}
+	}
+
+	async promptForInput(message: string): Promise<string | null> {
+		return new Promise((resolve) => {
+			const modal = new Modal(this.app);
+			modal.titleEl.setText(message);
+
+			const input = modal.contentEl.createEl("input", {
+				type: "text",
+				attr: { style: "width: 100%; padding: 8px; margin: 10px 0;" }
+			});
+
+			const buttonContainer = modal.contentEl.createDiv({ attr: { style: "display: flex; gap: 8px; justify-content: flex-end;" }});
+
+			const cancelBtn = buttonContainer.createEl("button", { text: "Cancel" });
+			cancelBtn.onclick = () => {
+				modal.close();
+				resolve(null);
+			};
+
+			const confirmBtn = buttonContainer.createEl("button", { text: "Create", cls: "mod-cta" });
+			confirmBtn.onclick = () => {
+				modal.close();
+				resolve(input.value);
+			};
+
+			input.addEventListener("keypress", (e) => {
+				if (e.key === "Enter") {
+					modal.close();
+					resolve(input.value);
+				}
+			});
+
+			modal.open();
+			input.focus();
+		});
 	}
 
 	onunload() {

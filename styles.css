@@ -60,3 +60,41 @@
 	float: right;
 	background-color: var(--interactive-normal);
 }
+
+.definition-popover-controls {
+	display: flex;
+	gap: 6px;
+	margin-top: 12px;
+	padding-top: 8px;
+	border-top: 1px solid var(--background-modifier-border);
+	flex-wrap: wrap;
+}
+
+.definition-control-button {
+	flex: 1;
+	min-width: fit-content;
+	padding: 4px 8px;
+	font-size: var(--font-ui-smaller);
+	background: var(--interactive-normal);
+	border: 1px solid var(--background-modifier-border);
+	border-radius: 4px;
+	cursor: pointer;
+	color: var(--text-normal);
+	transition: all 0.15s ease;
+}
+
+.definition-control-button:hover {
+	background: var(--interactive-hover);
+	border-color: var(--interactive-accent);
+}
+
+.definition-control-danger {
+	background: var(--background-modifier-error);
+	border-color: var(--background-modifier-error);
+	color: var(--text-on-accent);
+}
+
+.definition-control-danger:hover {
+	background: var(--background-modifier-error-hover);
+	opacity: 0.9;
+}

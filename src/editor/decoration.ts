@@ -66,6 +66,16 @@ export class DefinitionMarker implements PluginValue {
 		const defManager = getDefFileManager();
 		const currentFile = window.NoteDefinition.app.workspace.getActiveFile();
 
+		// Check if definitions are disabled for this file
+		if (currentFile) {
+			const cache = window.NoteDefinition.app.metadataCache.getFileCache(currentFile);
+			const frontmatter = cache?.frontmatter;
+			if (frontmatter && frontmatter['enable-definitions'] === false) {
+				// Definitions disabled for this file
+				return builder.finish();
+			}
+		}
+
 		for (let { from, to } of view.visibleRanges) {
 			const text = view.state.sliceDoc(from, to);
 			phraseInfos.push(...scanText(text, from));

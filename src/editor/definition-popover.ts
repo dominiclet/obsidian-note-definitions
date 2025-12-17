@@ -98,7 +98,7 @@ export class DefinitionPopover extends Component {
 			cls: "definition-popover",
 			attr: {
 				id: DEF_POPOVER_ID,
-				style: `visibility:hidden;${popoverSettings.backgroundColour ? 
+				style: `visibility:hidden;${popoverSettings.backgroundColour ?
 `background-color: ${popoverSettings.backgroundColour};` : ''}`
 			},
 		});
@@ -111,7 +111,7 @@ export class DefinitionPopover extends Component {
 		contentEl.setAttr("ctx", "def-popup");
 
 		const currComponent = this;
-		MarkdownRenderer.render(this.app, def.definition, contentEl, 
+		MarkdownRenderer.render(this.app, def.definition, contentEl,
 			normalizePath(def.file.path), currComponent);
 		this.postprocessMarkdown(contentEl, def);
 
@@ -121,6 +121,82 @@ export class DefinitionPopover extends Component {
 				cls: 'definition-popover-filename'
 			});
 		}
+
+		// Add quick-toggle buttons
+		const controlsContainer = el.createEl("div", {
+			cls: "definition-popover-controls"
+		});
+
+		// Button: Hide this word
+		const hideWordBtn = controlsContainer.createEl("button", {
+			text: "Hide this word",
+			cls: "definition-control-button"
+		});
+		hideWordBtn.onclick = async () => {
+			const settings = getSettings();
+			if (!settings.knownWords) {
+				settings.knownWords = [];
+			}
+			if (!settings.knownWords.includes(def.key)) {
+				settings.knownWords.push(def.key);
+				const plugin = window.NoteDefinition.plugin as any;
+				if (plugin && plugin.saveSettings) {
+					await plugin.saveSettings();
+				}
+				// Force decoration update
+				if (plugin && plugin.forceDecorationUpdate) {
+					plugin.forceDecorationUpdate();
+				}
+				this.unmount();
+			}
+		};
+
+		// Button: Disable for this page
+		const disablePageBtn = controlsContainer.createEl("button", {
+			text: "Disable for this page",
+			cls: "definition-control-button"
+		});
+		disablePageBtn.onclick = async () => {
+			const currentFile = this.app.workspace.getActiveFile();
+			if (currentFile) {
+				const content = await this.app.vault.read(currentFile);
+				const cache = this.app.metadataCache.getFileCache(currentFile);
+				const frontmatter = cache?.frontmatter || {};
+
+				// Add or update frontmatter
+				let newContent = content;
+				if (cache?.frontmatterPosition) {
+					// Has frontmatter, update it
+					const fmStart = cache.frontmatterPosition.start.offset;
+					const fmEnd = cache.frontmatterPosition.end.offset + 1;
+					const fmContent = content.substring(fmStart + 3, fmEnd - 4);
+					const newFm = fmContent + '\nenable-definitions: false\n';
+					newContent = content.substring(0, fmStart) + '---\n' + newFm + '---\n' + content.substring(fmEnd);
+				} else {
+					// No frontmatter, add it
+					newContent = '---\nenable-definitions: false\n---\n\n' + content;
+				}
+
+				await this.app.vault.modify(currentFile, newContent);
+				this.unmount();
+			}
+		};
+
+		// Button: Turn off all definitions
+		const globalToggleBtn = controlsContainer.createEl("button", {
+			text: "Turn off all definitions",
+			cls: "definition-control-button definition-control-danger"
+		});
+		globalToggleBtn.onclick = async () => {
+			const settings = getSettings();
+			settings.enableInReadingView = false;
+			const plugin = window.NoteDefinition.plugin as any;
+			if (plugin && plugin.saveSettings) {
+				await plugin.saveSettings();
+			}
+			this.unmount();
+		};
+
 		return el;
 	}
 
