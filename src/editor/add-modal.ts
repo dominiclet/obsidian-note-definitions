@@ -92,7 +92,6 @@ export class AddDefinitionModal {
 						const paths =
 							metadataCache?.frontmatter?.[DEF_CTX_FM_KEY];
 						if (paths) {
-							console.log(`NOTEDEF paths: ${paths}`);
 							val = paths[0];
 						}
 					}
@@ -188,8 +187,8 @@ export class AddDefinitionModal {
 					word: phraseText.value,
 					aliases: aliasText.value
 						? aliasText.value
-								.split(",")
-								.map((alias) => alias.trim())
+							.split(",")
+							.map((alias) => alias.trim())
 						: [],
 					definition: defText.value,
 					file: definitionFile,
