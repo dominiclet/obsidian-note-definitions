@@ -1,10 +1,18 @@
-import { App, DropdownComponent, Modal, Notice, Setting } from "obsidian";
-import { getDefFileManager } from "src/core/def-file-manager";
+import {
+	App,
+	DropdownComponent,
+	Modal,
+	Notice,
+	Setting,
+	TFile,
+} from "obsidian";
+import { getDefFileManager, DEF_CTX_FM_KEY } from "src/core/def-file-manager";
 import { DefFileUpdater } from "src/core/def-file-updater";
 import { DefFileType } from "src/core/file-type";
 
 export class AddDefinitionModal {
 	app: App;
+	activeFile: TFile | null;
 	modal: Modal;
 	aliases: string;
 	definition: string;
@@ -23,6 +31,9 @@ export class AddDefinitionModal {
 	}
 
 	open(text?: string) {
+		// initialize the view when the modal is opened to ensure it's up to date
+		this.activeFile = this.app.workspace.getActiveFile();
+
 		this.submitting = false;
 		this.modal.setTitle("Add Definition");
 		this.modal.contentEl.createDiv({
@@ -65,8 +76,26 @@ export class AddDefinitionModal {
 				defFiles.forEach((file) => {
 					component.addOption(file.path, file.path);
 				});
+
+				// set an initial value for the file picker
 				if (defFiles.length > 0) {
-					component.setValue(defFiles[0].path);
+					// default to using the first definition file in the defs folder
+					let val = defFiles[0].path;
+
+					// if the currently open file has at least one definition context, use it's
+					// first context as the initial value
+					if (this.activeFile) {
+						const metadataCache =
+							this.app.metadataCache.getFileCache(
+								this.activeFile,
+							);
+						const paths =
+							metadataCache?.frontmatter?.[DEF_CTX_FM_KEY];
+						if (paths) {
+							val = paths[0];
+						}
+					}
+					component.setValue(val);
 				}
 				this.defFilePicker = component;
 			});
@@ -158,8 +187,8 @@ export class AddDefinitionModal {
 					word: phraseText.value,
 					aliases: aliasText.value
 						? aliasText.value
-								.split(",")
-								.map((alias) => alias.trim())
+							.split(",")
+							.map((alias) => alias.trim())
 						: [],
 					definition: defText.value,
 					file: definitionFile,
