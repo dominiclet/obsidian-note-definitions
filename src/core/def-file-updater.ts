@@ -7,7 +7,6 @@ import { DefFileType } from "./file-type";
 import { FrontmatterBuilder } from "./fm-builder";
 import { Definition, FilePosition } from "./model";
 
-
 export class DefFileUpdater {
 	app: App;
 
@@ -39,13 +38,25 @@ export class DefFileUpdater {
 		const defs = await fileParser.parseFile(fileContent);
 		const lines = fileContent.split(/\r?\n/);
 
-		const fileDef = defs.find(fileDef => fileDef.key === def.key);
+		const fileDef = defs.find((fileDef) => fileDef.key === def.key);
 		if (!fileDef) {
 			logError("File definition not found, cannot edit");
 			return;
 		}
 		if (fileDef.position) {
-			const newLines = this.replaceDefinition(fileDef.position, def, lines);
+			// account for frontmatter
+			const fileMetadata = this.app.metadataCache.getFileCache(file);
+			const fmPos = fileMetadata?.frontmatterPosition;
+			if (fmPos) {
+				fileDef.position.to += fmPos.end.line + 1;
+				fileDef.position.from += fmPos.end.line + 1;
+			}
+
+			const newLines = this.replaceDefinition(
+				fileDef.position,
+				def,
+				lines,
+			);
 			const newContent = newLines.join("\n");
 
 			await this.app.vault.modify(file, newContent);
@@ -66,7 +77,10 @@ export class DefFileUpdater {
 		new Notice("Definition succesfully added");
 	}
 
-	private async addAtomicFileDefinition(def: Partial<Definition>, folder?: string) {
+	private async addAtomicFileDefinition(
+		def: Partial<Definition>,
+		folder?: string,
+	) {
 		if (!folder) {
 			logError("Folder missing for atomic file add");
 			return;
@@ -79,13 +93,16 @@ export class DefFileUpdater {
 		fmBuilder.add("def-type", "atomic");
 		if (def.aliases) {
 			const aliases: string[] = [];
-			def.aliases.forEach(alias => {
+			def.aliases.forEach((alias) => {
 				aliases.push(`- ${alias}`);
 			});
 			fmBuilder.add("aliases", "\n" + aliases.join("\n"));
 		}
 		const fm = fmBuilder.finish();
-		const file = await this.app.vault.create(`${folder}/${def.word}.md`, fm+def.definition);
+		const file = await this.app.vault.create(
+			`${folder}/${def.word}.md`,
+			fm + def.definition,
+		);
 
 		getDefFileManager().addDefFile(file);
 		getDefFileManager().markDirty(file);
@@ -113,15 +130,21 @@ export class DefFileUpdater {
 	private addSeparator(lines: string[]) {
 		const dividerSettings = getSettings().defFileParseConfig.divider;
 		let sepChoice = dividerSettings.underscore ? "___" : "---";
-		lines.push('', sepChoice);
+		lines.push("", sepChoice);
 	}
-	
+
 	private checkEndedWithSeparator(lines: string[]): boolean {
 		const settings = getSettings();
-		if (settings.defFileParseConfig.divider.dash && lines[lines.length-1].startsWith("---")) {
+		if (
+			settings.defFileParseConfig.divider.dash &&
+			lines[lines.length - 1].startsWith("---")
+		) {
 			return true;
 		}
-		if (settings.defFileParseConfig.divider.underscore && lines[lines.length-1].startsWith("___")) {
+		if (
+			settings.defFileParseConfig.divider.underscore &&
+			lines[lines.length - 1].startsWith("___")
+		) {
 			return true;
 		}
 		return false;
@@ -139,25 +162,34 @@ export class DefFileUpdater {
 		return lines.slice(0, lines.length - blankLines);
 	}
 
-	private replaceDefinition(position: FilePosition, def: Definition, lines: string[]) {
+	private replaceDefinition(
+		position: FilePosition,
+		def: Definition,
+		lines: string[],
+	) {
 		const before = lines.slice(0, position.from);
 		const after = lines.slice(position.to);
 		const newLines = this.constructLinesFromDef(def);
-		return before.concat(newLines, this.isSeparator(lines[position.to]) ? after : []);
+		return before.concat(
+			newLines,
+			this.isSeparator(lines[position.to]) ? after : [],
+		);
 	}
 
 	private isSeparator(line: string): boolean {
-		return line === '---' || line === '___';
+		return line === "---" || line === "___";
 	}
 
 	private constructLinesFromDef(def: Partial<Definition>): string[] {
 		const lines = [`# ${def.word}`];
 		if (def.aliases && def.aliases.length > 0) {
 			const aliasStr = `*${def.aliases.join(", ")}*`;
-			lines.push('', aliasStr);
+			lines.push("", aliasStr);
 		}
-		const trimmedDef = def.definition ? def.definition.replace(/\s+$/g, '') : '';
-		lines.push('', trimmedDef, '');
+		const trimmedDef = def.definition
+			? def.definition.replace(/\s+$/g, "")
+			: "";
+		lines.push("", trimmedDef, "");
 		return lines;
 	}
 }
