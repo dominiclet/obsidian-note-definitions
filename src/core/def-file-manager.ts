@@ -44,7 +44,7 @@ export class DefManager {
 		this.lastUpdate = 0;
 		this.markedDirty = [];
 
-		activeWindow.NoteDefinition.definitions.global = this.globalDefs;
+		window.NoteDefinition.definitions.global = this.globalDefs;
 
 		this.loadDefinitions();
 	}
@@ -398,7 +398,10 @@ export class DefinitionRepo {
 
 		if (def.aliases.length > 0) {
 			def.aliases.forEach((alias) => {
-				if (defMap && getSettings().defFileParseConfig.enableCaseSensitive) {
+				if (
+					defMap &&
+					getSettings().defFileParseConfig.enableCaseSensitive
+				) {
 					defMap.set(alias, def);
 				} else if (defMap) {
 					defMap.set(alias.toLowerCase(), def);
