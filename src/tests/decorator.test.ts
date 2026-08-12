@@ -95,3 +95,47 @@ test("Definitions that are a subset of another are detected correctly. The longe
 	];
 	expect(phraseInfo).toStrictEqual(expectedPhraseInfo);
 });
+
+test("Latin definitions are detected when followed by a Hangul particle", () => {
+	const mixedScriptTree = new PTreeNode();
+	mixedScriptTree.add("classpath");
+	const text = "JVM은 CLASSPATH에서 클래스를 찾는다.";
+	const from = text.indexOf("CLASSPATH");
+
+	expect(scanText(text, 0, mixedScriptTree)).toStrictEqual([
+		{
+			phrase: "classpath",
+			from,
+			to: from + "CLASSPATH".length,
+		},
+	]);
+});
+
+test("Hangul definitions are detected when followed by a particle", () => {
+	const hangulTree = new PTreeNode();
+	hangulTree.add("클래스패스");
+	const text = "클래스패스에서 클래스를 찾는다.";
+
+	expect(scanText(text, 0, hangulTree)).toStrictEqual([
+		{
+			phrase: "클래스패스",
+			from: 0,
+			to: "클래스패스".length,
+		},
+	]);
+});
+
+test("Latin definitions are detected between CJK characters", () => {
+	const mixedScriptTree = new PTreeNode();
+	mixedScriptTree.add("templater");
+	const text = "插件Templater에서 사용한다.";
+	const from = text.indexOf("Templater");
+
+	expect(scanText(text, 0, mixedScriptTree)).toStrictEqual([
+		{
+			phrase: "templater",
+			from,
+			to: from + "Templater".length,
+		},
+	]);
+});

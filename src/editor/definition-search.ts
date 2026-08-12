@@ -12,7 +12,8 @@ export interface PhraseInfo {
 export class LineScanner {
 	prefixTree: PTreeNode;
 
-	private cnLangRegex = /\p{Script=Han}/u;
+	private cjkCharRegex =
+		/[\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}\p{Script=Hangul}ー]/u;
 	private terminatingCharRegex =
 		/[!@#$%^&*()\+={}[\]:;"'<>,.?\/|\\\r\n （）＊＋，－／：；＜＝＞＠［＼］＾＿｀｛｜｝～｟｠｢｣､　、〃〈〉《》「」『』【】〔〕〖〗〘〙〚〛〜〝〞〟—‘’‛“”„‟…‧﹏﹑﹔·。]/;
 
@@ -25,11 +26,10 @@ export class LineScanner {
 		const phraseInfos: PhraseInfo[] = [];
 
 		for (let i = 0; i < line.length; i++) {
-			let c="";
+			let c = "";
 			if (getSettings().defFileParseConfig.enableCaseSensitive) {
 				c = line.charAt(i);
-			}
-			else {
+			} else {
 				c = line.charAt(i).toLowerCase();
 			}
 			if (this.isValidStart(line, i)) {
@@ -57,44 +57,50 @@ export class LineScanner {
 	}
 
 	private isValidEnd(line: string, ptr: number): boolean {
-		let c="";
+		let c = "";
 		if (getSettings().defFileParseConfig.enableCaseSensitive) {
 			c = line.charAt(ptr);
-		}
-		else {
+		} else {
 			c = line.charAt(ptr).toLowerCase();
 		}
-		if (this.isNonSpacedLanguage(c)) {
+		if (this.isCjkCharacter(c)) {
 			return true;
 		}
 		// If EOL, then it is a valid end
 		if (ptr === line.length - 1) {
 			return true;
 		}
-		// Check if next character is a terminating character
-		return this.terminatingCharRegex.test(line.charAt(ptr + 1));
+		// CJK text and Korean particles can directly follow a definition.
+		const nextChar = line.charAt(ptr + 1);
+		return (
+			this.terminatingCharRegex.test(nextChar) ||
+			this.isCjkCharacter(nextChar)
+		);
 	}
 
 	// Check if this character is a valid start of a word depending on the context
 	private isValidStart(line: string, ptr: number): boolean {
-		let c="";
+		let c = "";
 		if (getSettings().defFileParseConfig.enableCaseSensitive) {
 			c = line.charAt(ptr);
-		}
-		else {
+		} else {
 			c = line.charAt(ptr).toLowerCase();
 		}
 		if (c == " ") {
 			return false;
 		}
-		if (ptr === 0 || this.isNonSpacedLanguage(c)) {
+		if (ptr === 0 || this.isCjkCharacter(c)) {
 			return true;
 		}
-		// Check if previous character is a terminating character
-		return this.terminatingCharRegex.test(line.charAt(ptr - 1));
+		// Latin definitions can directly follow CJK text without a space.
+		const previousChar = line.charAt(ptr - 1);
+		return (
+			this.terminatingCharRegex.test(previousChar) ||
+			this.isCjkCharacter(previousChar)
+		);
 	}
 
-	private isNonSpacedLanguage(c: string): boolean {
-		return this.cnLangRegex.test(c);
+	private isCjkCharacter(c: string): boolean {
+		return this.cjkCharRegex.test(c);
 	}
 }
