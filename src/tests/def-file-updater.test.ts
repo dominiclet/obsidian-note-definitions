@@ -107,6 +107,55 @@ Yet another definition`;
 		expect(vaultModify).toHaveBeenCalledWith(file, expectedNewContent);
 	});
 
+	it("Update consolidated definition preserves personal notes", async () => {
+		const file = {
+			basename: "consolidated",
+			extension: "md",
+		} as TFile;
+
+		const oldContent = `# oldWord
+
+oldDefinition
+
+%%END%%
+
+my personal notes
+
+---
+
+# Another Definition
+
+anotherDefValue`;
+		const expectedNewContent = `# oldWord
+
+Updated definition.
+
+%%END%%
+
+my personal notes
+
+---
+
+# Another Definition
+
+anotherDefValue`;
+
+		jest.spyOn(app.vault, "read").mockResolvedValue(oldContent);
+		jest.spyOn(app.metadataCache, "getFileCache").mockReturnValue({});
+
+		await defFileUpdater.updateDefinition({
+			key: "oldword",
+			word: "oldWord",
+			aliases: [],
+			definition: "Updated definition.",
+			file: file,
+			linkText: "",
+			fileType: DefFileType.Consolidated,
+		});
+
+		expect(vaultModify).toHaveBeenCalledWith(file, expectedNewContent);
+	});
+
 	it("Add definition to consolidated file", async () => {
 		const file = {
 			basename: "consolidated",

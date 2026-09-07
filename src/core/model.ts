@@ -6,6 +6,9 @@ export interface Definition {
 	word: string;
 	aliases: string[];
 	definition: string;
+	// User's personal notes, kept in the def-block after a line containing only
+	// the note delimiter. Not shown as part of the definition.
+	notes?: string;
 	file: TFile;
 	linkText: string;
 	fileType: DefFileType;

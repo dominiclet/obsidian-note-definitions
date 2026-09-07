@@ -2,6 +2,7 @@ import { App, Notice } from "obsidian";
 import { getSettings } from "src/settings";
 import { logError, logWarn } from "src/util/log";
 import { getDefFileManager } from "./def-file-manager";
+import { NOTE_DELIMITER } from "./consolidated-def-parser";
 import { FileParser } from "./file-parser";
 import { DefFileType } from "./file-type";
 import { FrontmatterBuilder } from "./fm-builder";
@@ -158,6 +159,10 @@ export class DefFileUpdater {
 			? def.definition.replace(/\s+$/g, "")
 			: "";
 		lines.push("", trimmedDef);
+		const trimmedNotes = def.notes ? def.notes.replace(/\s+$/g, "") : "";
+		if (trimmedNotes) {
+			lines.push("", NOTE_DELIMITER, "", trimmedNotes);
+		}
 		return lines;
 	}
 
