@@ -28,6 +28,7 @@ You may want to assign hotkeys to the commands available for easy access:
 - Register consolidated definition file
 - Register atomic definition file
 - Refresh definitions
+- List duplicate definitions (see [Duplicate definitions](#duplicate-definitions))
 
 ## How it works
 
@@ -162,6 +163,16 @@ Or if you want to remove all contexts, you can delete the `def-context` property
 ## Refreshing definitions
 
 Whenever you find that the plugin is not detecting certain definitions or definition files, run the `Refresh definitions` command to manually get the plugin to read your definition files.
+
+## Duplicate definitions
+
+When more than one definition resolves to the same lookup key, only one of them will win when a phrase is matched in your notes, and the others are silently shadowed. This can happen in a few ways:
+
+- The same phrase (or alias) is defined in two different files or def-blocks.
+- A term is used as the main phrase of one definition and as an alias of another.
+- Two terms differ only in case (e.g. `API` and `api`) while case-sensitivity is disabled.
+
+After definitions are loaded or refreshed, a notice is shown if any conflicts are detected. Run the `List duplicate definitions` command to see each conflicting term along with clickable links to every location it is defined. Whether case-variant terms count as a conflict follows the `Enable Case Sensitivity` setting.
 
 ## Feedback
 

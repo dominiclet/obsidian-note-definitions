@@ -65,3 +65,35 @@
 .popover-go-to-def-button:hover {
 	opacity: 1;
 }
+
+/*Duplicate definition modal styling*/
+
+.definition-duplicates-hint {
+	color: var(--text-muted);
+	margin-top: 0;
+}
+
+.definition-duplicate-group {
+	margin-bottom: var(--size-4-3);
+	padding-bottom: var(--size-4-2);
+	border-bottom: 1px solid var(--background-modifier-border);
+}
+
+.definition-duplicate-term {
+	font-weight: var(--font-bold);
+}
+
+.definition-duplicate-scope {
+	color: var(--text-faint);
+	font-size: var(--font-ui-smaller);
+	margin-bottom: var(--size-4-1);
+}
+
+.definition-duplicate-list {
+	margin: 0;
+	padding-left: var(--size-4-4);
+}
+
+.definition-duplicate-link {
+	cursor: pointer;
+}
