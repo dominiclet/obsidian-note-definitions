@@ -20,3 +20,24 @@ export interface FilePosition {
 	from: number;
 	to: number;
 }
+
+export type DefinitionRole = "phrase" | "alias";
+
+// A single place where a lookup key is declared - either as the main phrase of
+// a definition or as one of its aliases.
+export interface DefinitionOccurrence {
+	key: string;
+	// The text as it was declared (before normalisation)
+	text: string;
+	role: DefinitionRole;
+	filePath: string;
+	linkText: string;
+	fileType: DefFileType;
+	position?: FilePosition;
+}
+
+// A lookup key that is declared by more than one definition occurrence.
+export interface DuplicateDefinition {
+	key: string;
+	occurrences: DefinitionOccurrence[];
+}

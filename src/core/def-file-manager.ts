@@ -1,4 +1,4 @@
-import { App, TFile, TFolder } from "obsidian";
+import { App, Notice, TFile, TFolder } from "obsidian";
 import { PTreeNode } from "src/editor/prefix-tree";
 import { DEFAULT_DEF_FOLDER, VALID_DEFINITION_FILE_TYPES } from "src/settings";
 import { normaliseWord } from "src/util/editor";
@@ -6,7 +6,8 @@ import { logDebug, logWarn } from "src/util/log";
 import { useRetry } from "src/util/retry";
 import { FileParser } from "./file-parser";
 import { DefFileType } from "./file-type";
-import { Definition } from "./model";
+import { Definition, DuplicateDefinition } from "./model";
+import { findDuplicateDefinitions } from "./duplicate-def-detector";
 import { getSettings } from "src/settings";
 
 let defFileManager: DefManager;
@@ -31,6 +32,9 @@ export class DefManager {
 
 	localDefs: DefinitionRepo;
 
+	// Populated on every full load/refresh (loadDefinitions)
+	duplicateDefs: DuplicateDefinition[];
+
 	constructor(app: App) {
 		this.app = app;
 		this.globalDefs = new DefinitionRepo();
@@ -39,6 +43,7 @@ export class DefManager {
 		this.globalPrefixTree = new PTreeNode();
 		this.consolidatedDefFiles = new Map<string, TFile>();
 		this.localDefs = new DefinitionRepo();
+		this.duplicateDefs = [];
 
 		this.resetLocalConfigs();
 		this.lastUpdate = 0;
@@ -46,7 +51,7 @@ export class DefManager {
 
 		window.NoteDefinition.definitions.global = this.globalDefs;
 
-		this.loadDefinitions();
+		this.loadDefinitions().then(this.triggerDuplicateDefWarning.bind(this));
 	}
 
 	addDefFile(file: TFile) {
@@ -185,6 +190,14 @@ export class DefManager {
 		this.globalPrefixTree = new PTreeNode();
 		this.globalDefs.clear();
 		this.globalDefFiles = new Map<string, TFile>();
+		this.duplicateDefs = [];
+	}
+
+	// Duplicate/conflicting definition keys detected during the last full
+	// load/refresh. Empty if no conflicts (or if definitions have not yet
+	// been loaded).
+	getDuplicateDefinitions(): DuplicateDefinition[] {
+		return this.duplicateDefs;
 	}
 
 	// Load all definitions from registered def folder
@@ -192,7 +205,17 @@ export class DefManager {
 	// Expensive operation so use sparingly
 	loadDefinitions() {
 		this.reset();
-		this.loadGlobals().then(this.updateActiveFile.bind(this));
+		return this.loadGlobals().then(this.updateActiveFile.bind(this));
+	}
+
+	triggerDuplicateDefWarning() {
+		const duplicates = this.getDuplicateDefinitions();
+		if (duplicates.length > 0) {
+			new Notice(
+				`Note Definitions: WARNING! ${duplicates.length} duplicate definition${duplicates.length === 1 ? "" : "s"} found. Your definitions may not work properly. Run 'List duplicate definitions' to review and resolve the duplicated definitions.`,
+				8000,
+			);
+		}
 	}
 
 	private getDefRepo() {
@@ -283,6 +306,11 @@ export class DefManager {
 		definitions.forEach((def) => {
 			this.globalDefs.set(def);
 		});
+
+		this.duplicateDefs = findDuplicateDefinitions(
+			definitions,
+			getSettings().defFileParseConfig.enableCaseSensitive,
+		);
 
 		this.buildPrefixTree();
 		this.lastUpdate = Date.now();
