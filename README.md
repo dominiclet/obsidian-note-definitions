@@ -57,6 +57,7 @@ A `consolidated` definition file is parsed according to the following rules:
 3. An **optional** comma-separated line of alias(es) is expected after a phrase. This must be a line surrounded by asterisks, eg. `*alias*`. *This is rendered as italics in Obsidian*.
 4. A line that occurs after a registered **phrase** and is not an alias is deemed to be a definition. Definitions can be multi-line. All subsequent lines are definitions until the definition block divider is encountered. You may write markdown here, which will be formatted similar to Obsidian's markdown formatting.
 5. A line with nothing but three hyphens `---` is used as a divider to separate definition blocks. This is rendered as a delimiting line in Obsidian. (This divider can be configured in the settings to recognise three underscores `___` as well)
+6. A line with nothing but `%%END%%` marks the end of the definition. Any lines after it (up to the divider) are treated as your own personal notes and are not shown as part of the definition. These notes are left untouched when the plugin edits the definition.
 
 Example definition file:
 
@@ -86,6 +87,17 @@ Example definition file:
 > # Markdown support
 > 
 > Markdown is supported so you can do things like including *italics* or **bold** words.
+>
+> ---
+>
+> # Word with personal notes
+>
+> This is the definition that gets shown in the popover.
+>
+> %%END%%
+>
+> These are my private notes about this entry. They stay in the file but are
+> never shown as part of the definition.
 
 For a more formal definition of the grammar of the consolidated definition file, you may refer to [this document](docs/grammar.md). 
 

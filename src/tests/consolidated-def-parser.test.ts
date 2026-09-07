@@ -26,6 +26,11 @@ const consolidatedStartFileWhitespace = fs.readFileSync(
 	"utf8",
 );
 
+const consolidatedPersonalNotes = fs.readFileSync(
+	"src/tests/def-file-samples/consolidated-personal-notes.md",
+	"utf8",
+);
+
 const parseSettings: DefFileParseConfig = {
 	defaultFileType: DefFileType.Consolidated,
 	divider: {
@@ -202,6 +207,46 @@ describe("Consolidated definition file has odd formatting, but still valid synta
 		expect(
 			definitions.find((def) => def.word === "Markdown support"),
 		).toBeDefined();
+	});
+});
+
+describe("Personal notes after %%END%% marker are excluded from the definition", () => {
+	const file = {
+		path: "src/tests/consolidated-personal-notes.md",
+	};
+	const notesParser = new ConsolidatedDefParser(
+		null as unknown as App,
+		file as TFile,
+		parseSettings,
+	);
+	const notesDefs = notesParser.directParseFile(consolidatedPersonalNotes);
+
+	it("Definition excludes lines after the %%END%% marker", () => {
+		expect(notesDefs.find((def) => def.key === "first")?.definition).toBe(
+			"This is the first definition to test basic functionality.",
+		);
+	});
+
+	it("Personal notes are captured separately", () => {
+		expect(notesDefs.find((def) => def.key === "first")?.notes).toBe(
+			"These are my personal notes for the first definition.\nThey should not be part of the definition.",
+		);
+	});
+
+	it("Def-blocks without a marker have no notes", () => {
+		expect(notesDefs.find((def) => def.key === "second")?.definition).toBe(
+			"This is the second definition.",
+		);
+		expect(notesDefs.find((def) => def.key === "second")?.notes).toBe("");
+	});
+
+	it("Subsequent def-blocks are still parsed after a marker", () => {
+		expect(notesDefs.find((def) => def.key === "third")?.definition).toBe(
+			"This definition has notes with what looks like a delimiter inside.",
+		);
+		expect(notesDefs.find((def) => def.key === "third")?.notes).toBe(
+			"Personal note line one.",
+		);
 	});
 });
 
