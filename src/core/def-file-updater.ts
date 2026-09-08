@@ -32,7 +32,31 @@ export class DefFileUpdater {
 	}
 
 	private async updateAtomicDefFile(def: Definition) {
-		await this.app.vault.modify(def.file, def.definition);
+		const file = def.file;
+		const fileContent = await this.app.vault.read(file);
+
+		// account for frontmatter, leaving the rest of it unmodified
+		const fileMetadata = this.app.metadataCache.getFileCache(file);
+		const fmPos = fileMetadata?.frontmatterPosition;
+		let fmContent = "";
+		if (fmPos) {
+			fmContent = fileContent.slice(0, fmPos.end.offset + 1);
+		}
+
+		await this.app.vault.modify(file, fmContent + def.definition);
+
+		// Aliases for atomic definitions live in the frontmatter, so keep them in sync
+		await this.app.fileManager
+			.processFrontMatter(file, (fm) => {
+				if (def.aliases.length > 0) {
+					fm["aliases"] = def.aliases;
+				} else {
+					delete fm["aliases"];
+				}
+			})
+			.catch((e) => {
+				logError(`Error updating aliases frontmatter: ${e}`);
+			});
 	}
 
 	private async updateConsolidatedDefFile(def: Definition) {

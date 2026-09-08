@@ -2,7 +2,7 @@ import { App, Notice, TFile, TFolder } from "obsidian";
 import { PTreeNode } from "src/editor/prefix-tree";
 import { DEFAULT_DEF_FOLDER, VALID_DEFINITION_FILE_TYPES } from "src/settings";
 import { normaliseWord } from "src/util/editor";
-import { logDebug, logWarn } from "src/util/log";
+import { logDebug, logError, logWarn } from "src/util/log";
 import { useRetry } from "src/util/retry";
 import { FileParser } from "./file-parser";
 import { DefFileType } from "./file-type";
@@ -212,7 +212,7 @@ export class DefManager {
 		const duplicates = this.getDuplicateDefinitions();
 		if (duplicates.length > 0) {
 			new Notice(
-				`Note Definitions: WARNING! ${duplicates.length} duplicate definition${duplicates.length === 1 ? "" : "s"} found. Your definitions may not work properly. Run 'List duplicate definitions' to review and resolve the duplicated definitions.`,
+				`Note Definitions: [WARNING] ${duplicates.length} duplicate definition${duplicates.length === 1 ? "" : "s"} found. Your definitions may not work properly.\n\nRun 'List duplicate definitions' to review and resolve the duplicated definitions.`,
 				8000,
 			);
 		}
@@ -254,8 +254,12 @@ export class DefManager {
 					`File ${file.path} was updated, reloading definitions...`,
 				);
 				dirtyFiles.push(file.path);
-				const defs = await this.parseFile(file);
-				definitions.push(...defs);
+				try {
+					const defs = await this.parseFile(file);
+					definitions.push(...defs);
+				} catch (e) {
+					this.reportParseError(file, e);
+				}
 			}
 		}
 
@@ -332,11 +336,24 @@ export class DefManager {
 				let defs = await this.parseFolder(f);
 				definitions.push(...defs);
 			} else if (f instanceof TFile && this.isDefFile(f)) {
-				let defs = await this.parseFile(f);
-				definitions.push(...defs);
+				try {
+					let defs = await this.parseFile(f);
+					definitions.push(...defs);
+				} catch (e) {
+					this.reportParseError(f, e);
+				}
 			}
 		}
 		return definitions;
+	}
+
+	private reportParseError(file: TFile, e: unknown) {
+		const msg = e instanceof Error ? e.message : String(e);
+		logError(`Failed to parse definition file '${file.path}': ${msg}`);
+		new Notice(
+			`Note Definitions: [ERROR] Failed to parse definition file '${file.path}'. Skipping this file.\n\nError: ${msg}`,
+			8000,
+		);
 	}
 
 	private async parseFile(file: TFile): Promise<Definition[]> {

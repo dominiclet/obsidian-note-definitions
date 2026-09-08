@@ -48,6 +48,92 @@ test("Update atomic definition", async () => {
 	expect(vaultModify).toHaveBeenCalledWith(file, "this is a test definition");
 });
 
+test("Update atomic definition preserves frontmatter", async () => {
+	const file = {
+		basename: "atomic",
+		extension: "md",
+	} as TFile;
+
+	const oldContent = `---
+def-type: atomic
+aliases:
+  - foo
+---
+old definition`;
+	const expectedNewContent = `---
+def-type: atomic
+aliases:
+  - foo
+---
+this is a new definition`;
+
+	jest.spyOn(app.vault, "read").mockResolvedValue(oldContent);
+	jest.spyOn(app.metadataCache, "getFileCache").mockReturnValue({
+		frontmatterPosition: {
+			start: { line: 0, col: 0, offset: 0 },
+			end: {
+				line: 4,
+				col: 3,
+				offset: oldContent.indexOf("---\nold") + 3,
+			},
+		},
+	});
+
+	await defFileUpdater.updateDefinition({
+		key: "atomic",
+		word: "atomic",
+		aliases: [],
+		definition: "this is a new definition",
+		file: file,
+		linkText: "",
+		fileType: DefFileType.Atomic,
+	});
+
+	expect(vaultModify).toHaveBeenCalledWith(file, expectedNewContent);
+});
+
+test("Update atomic definition syncs aliases to frontmatter", async () => {
+	const file = {
+		basename: "atomic",
+		extension: "md",
+	} as TFile;
+
+	jest.spyOn(app.vault, "read").mockResolvedValue("old definition");
+	jest.spyOn(app.metadataCache, "getFileCache").mockReturnValue({});
+	const processFrontMatter = jest
+		.spyOn(app.fileManager, "processFrontMatter")
+		.mockImplementation(async (_file, fn) => fn({}));
+
+	await defFileUpdater.updateDefinition({
+		key: "atomic",
+		word: "atomic",
+		aliases: ["foo", "bar"],
+		definition: "updated",
+		file: file,
+		linkText: "",
+		fileType: DefFileType.Atomic,
+	});
+
+	expect(processFrontMatter).toHaveBeenCalledWith(file, expect.any(Function));
+	const fm: Record<string, any> = { aliases: ["stale"] };
+	processFrontMatter.mock.calls[0][1](fm);
+	expect(fm.aliases).toEqual(["foo", "bar"]);
+
+	// Removing all aliases should delete the frontmatter key
+	const fmEmpty: Record<string, any> = { aliases: ["foo"] };
+	await defFileUpdater.updateDefinition({
+		key: "atomic",
+		word: "atomic",
+		aliases: [],
+		definition: "updated",
+		file: file,
+		linkText: "",
+		fileType: DefFileType.Atomic,
+	});
+	processFrontMatter.mock.calls[1][1](fmEmpty);
+	expect(fmEmpty).not.toHaveProperty("aliases");
+});
+
 describe("Test modifying consolidated file", () => {
 	it("Update consolidated definition", async () => {
 		const file = {
