@@ -31,6 +31,11 @@ const consolidatedPersonalNotes = fs.readFileSync(
 	"utf8",
 );
 
+const consolidatedBoldStart = fs.readFileSync(
+	"src/tests/def-file-samples/consolidated-bold-start.md",
+	"utf8",
+);
+
 const parseSettings: DefFileParseConfig = {
 	defaultFileType: DefFileType.Consolidated,
 	divider: {
@@ -246,6 +251,37 @@ describe("Personal notes after %%END%% marker are excluded from the definition",
 		);
 		expect(notesDefs.find((def) => def.key === "third")?.notes).toBe(
 			"Personal note line one.",
+		);
+	});
+});
+
+describe("Definitions starting with a bold word are parsed correctly", () => {
+	const file = {
+		path: "src/tests/consolidated-bold-start.md",
+	};
+	const boldParser = new ConsolidatedDefParser(
+		null as unknown as App,
+		file as TFile,
+		parseSettings,
+	);
+	const boldDefs = boldParser.directParseFile(consolidatedBoldStart);
+
+	it("Bold word after a blank line does not truncate the definition", () => {
+		expect(
+			boldDefs.find((def) => def.key === "bold start")?.definition,
+		).toBe("**Bold** word then some more text.");
+	});
+
+	it("Bold word directly after the header does not truncate the definition", () => {
+		expect(
+			boldDefs.find((def) => def.key === "bold start no blank line")
+				?.definition,
+		).toBe("**Bold** word directly after the header.");
+	});
+
+	it("Subsequent normal definitions are still parsed", () => {
+		expect(boldDefs.find((def) => def.key === "normal")?.definition).toBe(
+			"Regular definition with no bold.",
 		);
 	});
 });

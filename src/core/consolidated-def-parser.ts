@@ -154,6 +154,17 @@ export class ConsolidatedDefParser extends BaseDefParser {
 			return [];
 		}
 
+		// Treat a leading "**" as bold text at the start of the definition.
+		// Backtrack over both asterisks and treat it as body.
+		// Fixes an issue where bold text at the start of the line
+		// causes the rest of the line to be ignored.
+		const nextChar = this.consumeChar();
+		if (nextChar == "*") {
+			this.spitChar(2);
+			return [];
+		}
+		this.spitChar();
+
 		// Consume until reach ASTERISK
 		let aliasStart = this.cursor;
 		let aliasEnd = aliasStart;
