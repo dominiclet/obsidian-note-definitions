@@ -2,6 +2,7 @@ import { BaseDefParser } from "./base-def-parser";
 import { App, TFile } from "obsidian";
 import { Definition } from "./model";
 import { DefFileType } from "./file-type";
+import { readFileFrontmatter } from "src/util/frontmatter";
 
 export class AtomicDefParser extends BaseDefParser {
 	app: App;
@@ -20,24 +21,24 @@ export class AtomicDefParser extends BaseDefParser {
 		}
 
 		const fileMetadata = this.app.metadataCache.getFileCache(this.file);
+		const frontmatter = readFileFrontmatter(fileContent, fileMetadata);
 		let aliases = [];
-		const fmData = fileMetadata?.frontmatter;
+		const fmData = frontmatter.data;
 		if (fmData) {
 			const fmAlias = fmData["aliases"];
 			if (Array.isArray(fmAlias)) {
 				aliases = fmAlias;
 			}
 		}
-		const fmPos = fileMetadata?.frontmatterPosition;
-		if (fmPos) {
-			fileContent = fileContent.slice(fmPos.end.offset + 1);
+		if (frontmatter.contentStart > 0) {
+			fileContent = fileContent.slice(frontmatter.contentStart);
 		}
 
-		let key = this.parseSettings.enableCaseSensitive ? this.file.basename : this.file.basename.toLowerCase();
-		
-		aliases = aliases.concat(
-			this.calculatePlurals([key].concat(aliases)),
-		);
+		let key = this.parseSettings.enableCaseSensitive
+			? this.file.basename
+			: this.file.basename.toLowerCase();
+
+		aliases = aliases.concat(this.calculatePlurals([key].concat(aliases)));
 
 		const def = {
 			key: key,

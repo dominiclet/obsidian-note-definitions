@@ -34,6 +34,9 @@ export class DefManager {
 
 	// Populated on every full load/refresh (loadDefinitions)
 	duplicateDefs: DuplicateDefinition[];
+	private loadPromise: Promise<void> | null = null;
+	private reloadRequested = false;
+	private updateRequested = false;
 
 	constructor(app: App) {
 		this.app = app;
@@ -223,9 +226,54 @@ export class DefManager {
 	// Load all definitions from registered def folder
 	// This will recurse through the def folder, parsing all definition files
 	// Expensive operation so use sparingly
-	loadDefinitions() {
-		this.reset();
-		return this.loadGlobals().then(this.updateActiveFile.bind(this));
+	loadDefinitions(): Promise<void> {
+		this.reloadRequested = true;
+		return this.scheduleDefinitionLoads();
+	}
+
+	loadUpdatedFiles(): Promise<void> {
+		this.updateRequested = true;
+		return this.scheduleDefinitionLoads();
+	}
+
+	private scheduleDefinitionLoads(): Promise<void> {
+		if (!this.loadPromise) {
+			// Publish the shared promise before any work can re-enter this method.
+			this.loadPromise = Promise.resolve().then(() =>
+				this.runDefinitionLoads(),
+			);
+		}
+		return this.loadPromise;
+	}
+
+	private async runDefinitionLoads(): Promise<void> {
+		let failed = false;
+		let firstError: unknown;
+		try {
+			while (this.reloadRequested || this.updateRequested) {
+				try {
+					if (this.reloadRequested) {
+						this.reloadRequested = false;
+						this.reset();
+						await this.loadGlobals();
+					} else {
+						this.updateRequested = false;
+						await this.runUpdatedFileLoad();
+					}
+					this.updateActiveFile();
+				} catch (error) {
+					// Drain requests received during a failed pass, but still reject
+					// the shared promise so callers can observe the failure.
+					if (!failed) firstError = error;
+					failed = true;
+				}
+			}
+			if (failed) throw firstError;
+		} finally {
+			// No await between the final pending-work check and releasing the
+			// lock: a request cannot be lost in a promise-settlement gap.
+			this.loadPromise = null;
+		}
 	}
 
 	triggerDuplicateDefWarning() {
@@ -262,14 +310,21 @@ export class DefManager {
 		return [...this.globalDefFolders.values()];
 	}
 
-	async loadUpdatedFiles() {
+	private async runUpdatedFileLoad() {
+		const startedAt = Date.now();
 		const definitions: Definition[] = [];
 		const dirtyFiles: string[] = [];
 
-		const files = [...this.globalDefFiles.values(), ...this.markedDirty];
+		// Consume only the current dirty batch; later additions belong to the
+		// next pass and must not be cleared when this one finishes.
+		const markedDirty = new Set(this.markedDirty.splice(0));
+		const files = new Set([
+			...this.globalDefFiles.values(),
+			...markedDirty,
+		]);
 
 		for (let file of files) {
-			if (file.stat.mtime > this.lastUpdate) {
+			if (markedDirty.has(file) || file.stat.mtime >= this.lastUpdate) {
 				logDebug(
 					`File ${file.path} was updated, reloading definitions...`,
 				);
@@ -293,9 +348,8 @@ export class DefManager {
 			});
 		}
 
-		this.markedDirty = [];
 		this.buildPrefixTree();
-		this.lastUpdate = Date.now();
+		this.lastUpdate = startedAt;
 	}
 
 	// Global configs should always be used by default
@@ -306,6 +360,7 @@ export class DefManager {
 	}
 
 	private async loadGlobals() {
+		const startedAt = Date.now();
 		const retry = useRetry();
 		let globalFolder: TFolder | null = null;
 		// Retry is needed here as getFolderByPath may return null when being called on app startup
@@ -343,7 +398,7 @@ export class DefManager {
 		);
 
 		this.buildPrefixTree();
-		this.lastUpdate = Date.now();
+		this.lastUpdate = startedAt;
 	}
 
 	// Scan the entire vault for markdown files carrying the def file tag

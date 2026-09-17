@@ -1,4 +1,4 @@
-import { App, Notice } from "obsidian";
+import { App, Notice, getFrontMatterInfo } from "obsidian";
 import { getSettings } from "src/settings";
 import { logError, logWarn } from "src/util/log";
 import { getDefFileManager } from "./def-file-manager";
@@ -35,13 +35,10 @@ export class DefFileUpdater {
 		const file = def.file;
 		const fileContent = await this.app.vault.read(file);
 
-		// account for frontmatter, leaving the rest of it unmodified
-		const fileMetadata = this.app.metadataCache.getFileCache(file);
-		const fmPos = fileMetadata?.frontmatterPosition;
-		let fmContent = "";
-		if (fmPos) {
-			fmContent = fileContent.slice(0, fmPos.end.offset + 1);
-		}
+		// Preserve the frontmatter from the exact content being rewritten,
+		// even when metadata is missing or its offsets are stale.
+		const { contentStart } = getFrontMatterInfo(fileContent);
+		const fmContent = fileContent.slice(0, contentStart);
 
 		await this.app.vault.modify(file, fmContent + def.definition);
 
@@ -80,13 +77,10 @@ export class DefFileUpdater {
 		fileDef.definition = def.definition;
 		fileDef.aliases = def.aliases;
 
-		// account for frontmatter
-		const fileMetadata = this.app.metadataCache.getFileCache(file);
-		const fmPos = fileMetadata?.frontmatterPosition;
-		let fmContent: string = "";
-		if (fmPos) {
-			fmContent = fileContent.slice(0, fmPos.end.offset + 1);
-		}
+		// Preserve the frontmatter from the exact content being rewritten,
+		// even when metadata is missing or its offsets are stale.
+		const { contentStart } = getFrontMatterInfo(fileContent);
+		const fmContent = fileContent.slice(0, contentStart);
 
 		const newContent = this.generateConsDefFile(defs);
 
@@ -154,13 +148,10 @@ export class DefFileUpdater {
 		// Nothing else is used
 		defs.push(def);
 
-		// account for frontmatter
-		const fileMetadata = this.app.metadataCache.getFileCache(file);
-		const fmPos = fileMetadata?.frontmatterPosition;
-		let fmContent: string = "";
-		if (fmPos) {
-			fmContent = fileContent.slice(0, fmPos.end.offset + 1);
-		}
+		// Preserve the frontmatter from the exact content being rewritten,
+		// even when metadata is missing or its offsets are stale.
+		const { contentStart } = getFrontMatterInfo(fileContent);
+		const fmContent = fileContent.slice(0, contentStart);
 
 		const newContent = this.generateConsDefFile(defs);
 

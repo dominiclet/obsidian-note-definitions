@@ -325,3 +325,131 @@ This is a new definition.`;
 		expect(vaultModify).toHaveBeenCalledWith(file, expectedNewContent);
 	});
 });
+
+describe("Preserving frontmatter while the metadata cache is warming", () => {
+	it.each([
+		["atomic edit", "\n"],
+		["atomic edit", "\r\n"],
+		["consolidated edit", "\n"],
+		["consolidated edit", "\r\n"],
+		["consolidated addition", "\n"],
+		["consolidated addition", "\r\n"],
+	])(
+		"preserves raw properties during %s with newline %j",
+		async (operation, newline) => {
+			const isolatedApp = new App();
+			const updater = new DefFileUpdater(isolatedApp);
+			const atomic = operation === "atomic edit";
+			const fileType = atomic
+				? DefFileType.Atomic
+				: DefFileType.Consolidated;
+			const file = {
+				path: "definitions/Alpha.md",
+				basename: "Alpha",
+				extension: "md",
+			} as TFile;
+			const frontmatter = [
+				"---",
+				`def-type: ${fileType}`,
+				"# keep this comment",
+				"tags: [keep-me, another-tag]",
+				"custom:",
+				"  nested: 'quoted: value'",
+				"aliases: [Original]",
+				"---",
+				"",
+			].join(newline);
+			const body = atomic
+				? "Old definition."
+				: "# Alpha\n\nOld definition.\n\n---\n\n# Beta\n\nUntouched definition.";
+			jest.spyOn(isolatedApp.vault, "read").mockResolvedValue(
+				frontmatter + body,
+			);
+			jest.spyOn(
+				isolatedApp.metadataCache,
+				"getFileCache",
+			).mockReturnValue(null);
+			const modify = jest.spyOn(isolatedApp.vault, "modify");
+			const properties = {
+				"def-type": fileType,
+				tags: ["keep-me", "another-tag"],
+				custom: { nested: "quoted: value" },
+				aliases: ["Original"],
+			};
+			jest.spyOn(
+				isolatedApp.fileManager,
+				"processFrontMatter",
+			).mockImplementation(async (_file, update) => update(properties));
+			const definition = {
+				key: "alpha",
+				word: "Alpha",
+				aliases: ["Updated Alias"],
+				definition: "Updated definition.",
+				file,
+				fileType,
+				linkText: "",
+			};
+			if (operation === "consolidated addition") {
+				await updater.addDefinition({
+					...definition,
+					word: "Gamma",
+					definition: "New definition.",
+				});
+			} else {
+				await updater.updateDefinition(definition);
+			}
+			expect(modify).toHaveBeenCalledTimes(1);
+			const written = modify.mock.calls[0][1];
+			expect(written.slice(0, frontmatter.length)).toBe(frontmatter);
+			if (atomic) {
+				expect(written).toBe(frontmatter + "Updated definition.");
+				expect(properties).toEqual({
+					"def-type": fileType,
+					tags: ["keep-me", "another-tag"],
+					custom: { nested: "quoted: value" },
+					aliases: ["Updated Alias"],
+				});
+			} else {
+				expect(written).toContain("# Beta\n\nUntouched definition.");
+				if (operation === "consolidated addition") {
+					expect(written).toContain("Old definition.");
+					expect(written).toContain(
+						"# Gamma\n\n*Updated Alias*\n\nNew definition.",
+					);
+				} else {
+					expect(written).toContain(
+						"# Alpha\n\n*Updated Alias*\n\nUpdated definition.",
+					);
+					expect(written).not.toContain("Old definition.");
+				}
+			}
+		},
+	);
+
+	it("preserves frontmatter when cached offsets are stale", async () => {
+		const isolatedApp = new App();
+		const file = { path: "Alpha.md", basename: "Alpha" } as TFile;
+		const frontmatter =
+			"---\ntags: [keep-me]\ncustom: longer-than-before\n---\n";
+		jest.spyOn(isolatedApp.vault, "read").mockResolvedValue(
+			frontmatter + "Old body",
+		);
+		jest.spyOn(isolatedApp.metadataCache, "getFileCache").mockReturnValue({
+			frontmatterPosition: {
+				start: { line: 0, col: 0, offset: 0 },
+				end: { line: 2, col: 3, offset: 12 },
+			},
+		});
+		const modify = jest.spyOn(isolatedApp.vault, "modify");
+		await new DefFileUpdater(isolatedApp).updateDefinition({
+			key: "alpha",
+			word: "Alpha",
+			aliases: [],
+			definition: "New body",
+			file,
+			linkText: "",
+			fileType: DefFileType.Atomic,
+		});
+		expect(modify).toHaveBeenCalledWith(file, frontmatter + "New body");
+	});
+});

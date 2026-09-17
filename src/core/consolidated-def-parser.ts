@@ -3,6 +3,7 @@ import { BaseDefParser } from "src/core/base-def-parser";
 import { DefFileParseConfig } from "src/settings";
 import { DefFileType } from "./file-type";
 import { Definition, FilePosition } from "./model";
+import { readFileFrontmatter } from "src/util/frontmatter";
 
 interface DocAST {
 	blocks: DefblockAST[];
@@ -56,9 +57,9 @@ export class ConsolidatedDefParser extends BaseDefParser {
 
 		// Ignore frontmatter (properties)
 		const fileMetadata = this.app.metadataCache.getFileCache(this.file);
-		const fmPos = fileMetadata?.frontmatterPosition;
-		if (fmPos) {
-			fileContent = fileContent.slice(fmPos.end.offset + 1);
+		const { contentStart } = readFileFrontmatter(fileContent, fileMetadata);
+		if (contentStart > 0) {
+			fileContent = fileContent.slice(contentStart);
 		}
 		return this.directParseFile(fileContent);
 	}

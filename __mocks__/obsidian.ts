@@ -1,3 +1,5 @@
+import { parse } from "yaml";
+
 export class App {
 	vault: Vault;
 	metadataCache: MetadataCache;
@@ -33,6 +35,9 @@ export class Vault {
 	read(file: TFile): Promise<string> {
 		return Promise.resolve("");
 	}
+	cachedRead(file: TFile): Promise<string> {
+		return Promise.resolve("");
+	}
 }
 
 export class MetadataCache {
@@ -42,3 +47,28 @@ export class MetadataCache {
 }
 
 export class Notice {}
+
+export function getFrontMatterInfo(content: string) {
+	const match = content.match(/^---\r?\n([\s\S]*?)\r?\n---\r?\n?/);
+	if (!match) {
+		return {
+			exists: false,
+			frontmatter: "",
+			from: 0,
+			to: 0,
+			contentStart: 0,
+		};
+	}
+	const openingLength = match[0].indexOf(match[1]);
+	return {
+		exists: true,
+		frontmatter: match[1],
+		from: openingLength,
+		to: openingLength + match[1].length,
+		contentStart: match[0].length,
+	};
+}
+
+export function parseYaml(yaml: string): Record<string, unknown> {
+	return parse(yaml);
+}
